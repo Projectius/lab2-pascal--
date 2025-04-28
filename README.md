@@ -158,57 +158,88 @@ end.
 
 ---
 
-### 1. Класс `PostfixExecutor`
-
-**Описание:** Выполняет выражения в постфиксной форме через стек.
+### 1. Класс `Lexer`
 
 **Методы:**
+- `vector<Lexeme> Tokenize(const string& sourceCode)` — преобразует исходный код в список лексем.
 
-- `double Evaluate(const std::vector<Token>& postfix)` — вычисление значения;
-- Поддержка переменных (доступ к таблице символов);
-- Обработка ошибок: деление на ноль, неизвестная переменная и т.п.
+**Структуры:**
+- `Lexeme` — содержит тип лексемы (`LexemeType`) и её строковое значение.
 
 ---
 
-### 2. Класс `HierarchicalList`
-
-**Описание:** Представляют иерархический текст программы.
+### 2. Структура `HLNode`
 
 **Методы:**
+- `void addNext(HLNode* child)` — добавляет следующий узел на том же уровне.
+- `void addChild(HLNode* child)` — добавляет дочерний узел ниже по уровню.
 
-- `void AddChild(ASTNode*)`;
-- `void Execute()` — рекурсивное выполнение;
-- `void CheckSyntax()` — проверка синтаксической корректности.
+**Поля:**
+- `HLNode* pnext` — указатель на следующий узел.
+- `HLNode* pdown` — указатель на дочерний узел.
+- `Lexeme* lex` — указатель на лексему.
 
 ---
 
-### 3. Класс `ProgramExecutor`
-
-**Описание:** Главный интерпретатор — обходит дерево программы и выполняет действия.
+### 3. Класс `Parser`
 
 **Методы:**
+- `void CheckForErrors(vector<Lexeme>& lexemes)` — проверяет токенизированный текст программы на ошибки.
+- `HLNode* BuildHList(vector<Lexeme>& lexemes)` — строит иерархический список из вектора лексем.
 
-- `void Run(ASTNode* root)` — запуск исполнения;
-- `void ExecuteBlock(ASTNode*)`, `void ExecuteIf(ASTNode*)` и т.п.;
-- Использует `RPNExecutor` и `SymbolTable`.
+---
 
-### 4. Класс `Lexer`
-
-**Описание:** Отвечает за лексический анализ программы — разбиение текста на лексемы.
-
-**Типы токенов:**
-
-
-enum class TokenType {
-  Keyword, Identifier, Number, Operator, Separator, StringLiteral, EndOfFile, ...
-};
-
-### 5. Класс `Parser`
-
-**Описание:** Выполняет парсинг и проверку на корректность грамматики.
+### 4. Класс `PostfixExecutor`
 
 **Методы:**
+- `PostfixExecutor(TableManager* varTablep)` — конструктор.
+- `void toPostfix(HLNode start)` — преобразует иерархический список в постфиксную форму.
+- `bool executePostfix()` — выполняет постфиксное выражение.
 
-- `ASTNode* BuildAST(const std::vector<Token>& tokens)`
-- `std::vector<Token> GenerateRPN(ASTNode* node)`
+**Поля:**
+- `TableManager* vartable` — таблица переменных.
+- `vector<Lexeme> postfix` — постфиксное представление выражения.
 
+---
+
+### 5. Класс `ProgramExecutor`
+
+**Методы:**
+- `void Execute(HLNode* head)` — выполняет программу, представленную иерархическим списком.
+
+**Поля:**
+- `TableManager vartable` — таблица переменных.
+- `PostfixExecutor postfix` — исполнитель постфиксных выражений.
+
+---
+
+### 6. Класс `TableManager`
+
+**Методы:**
+- `void addInt(int val)` — добавляет целочисленное значение.
+- `void addDouble(double val)` — добавляет значение с плавающей точкой.
+- `void addString(double val)` — добавляет строковое значение.
+- `int& getInt(string name)` — возвращает целочисленную переменную.
+- `double& getDouble(string name)` — возвращает переменную с плавающей точкой.
+- `string& getString(string name)` — возвращает строковую переменную.
+
+**Поля:**
+- `THashTableChain<string, int> inttable` — таблица целочисленных переменных.
+- `THashTableChain<string, double> doubletable` — таблица переменных с плавающей точкой.
+- `THashTableChain<string, string> strtable` — таблица строковых переменных.
+
+---
+
+### 7. Класс `THashTableChain`
+
+**Методы:**
+- `size_t HashFunction(const TKey& key) const` — хеш-функция.
+- `void Insert(const TKey& key, const TValue& value)` — вставляет пару ключ-значение.
+- `void Delete(const TKey& key)` — удаляет значение по ключу.
+- `TValue* Find(const TKey& key)` — находит значение по ключу.
+- `void Print() const` — выводит содержимое таблицы.
+- `TValue& operator[](const TKey& key)` — доступ к значению по ключу.
+
+**Поля:**
+- `vector<list<Node>> data` — данные таблицы.
+- `size_t bucketCount` — количество корзин.
