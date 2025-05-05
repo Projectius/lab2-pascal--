@@ -10,6 +10,11 @@ struct Lexeme
 {
 	LexemeType type;
 	string value;
+
+	bool operator==(const Lexeme& other) const 
+	{
+		return type == other.type && value == other.value;
+	}
 };
 
 class Lexer
