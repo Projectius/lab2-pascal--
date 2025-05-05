@@ -4,6 +4,8 @@
 using namespace std;
 
 enum class LexemeType { Unknown, Keyword, Identifier, Number, Operator, Separator, StringLiteral, EndOfFile};
+
+
 struct Lexeme
 {
 	LexemeType type;
@@ -12,7 +14,7 @@ struct Lexeme
 
 class Lexer
 {
-	static map <string, Lexeme> Database;
+	static map <string, LexemeType> Database;
 
 public:
 	vector<Lexeme> Tokenize(const string& sourceCode);
