@@ -8,8 +8,8 @@ class TableManager
     THashTableChain<string, string> strtable;
 public:
 	void addInt(int val) explicit;
-	void addDouble(double val)explicit;
-	void addString(double val)explicit;
+	void addDouble(double val) explicit;
+	void addString(double val) explicit;
 
     int& getInt(string name);
     double& getDouble(string name);

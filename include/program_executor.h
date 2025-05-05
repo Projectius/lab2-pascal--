@@ -1,8 +1,8 @@
 #pragma once
-#include"hierarchical_list.h"
-#include"lexer.h"
-#incude "postfix.h"
-#include"tableManager.h"
+#include "hierarchical_list.h"
+#include "lexer.h"
+#include "postfix.h"
+#include "tableManager.h"
 
 class ProgramExecutor
 {
