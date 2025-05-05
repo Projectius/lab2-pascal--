@@ -10,3 +10,8 @@ TEST(HierarchicalListTest, can_add_child)
 {
 
 }
+
+TEST(HierarchicalListTest, can_self_destruct)
+{
+
+}

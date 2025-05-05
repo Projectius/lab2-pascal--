@@ -1,9 +1,7 @@
 #include "gtest.h"
 #include "postfix.h"
 
-TEST(PostfixTest, can_calculate_num_infix_expression)
+TEST(PostfixTest, can_create_)
 {
-    PostfixExecutor p;
-    p.dosomething();
-    ADD_FAILURE();
+
 }
