@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <map>
+#include<string>
 using namespace std;
 
 enum class LexemeType { Unknown, Keyword, Identifier, Number, Operator, Separator, StringLiteral, EndOfFile};

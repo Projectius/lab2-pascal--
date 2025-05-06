@@ -105,7 +105,7 @@ vector<Lexeme> Lexer::Tokenize(const string& sourceCode)
 
             // Регистронезависимость: преобразуем в нижний регистр для поиска и хранения
             string lower_word = word;
-            transform(lower_word.begin(), lower_word.end(), lower_word.begin(), ::tolower);
+            //transform(lower_word.begin(), lower_word.end(), lower_word.begin(), ::tolower);
 
             auto it = Database.find(lower_word);
             LexemeType type = (it != Database.end()) ? it->second : LexemeType::Identifier;

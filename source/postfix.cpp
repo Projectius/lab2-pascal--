@@ -3,7 +3,4 @@
 
 using namespace std;
 
-void PostfixExecutor::dosomething()
-{
-	cout << "AAAAAAA";
-}
+
