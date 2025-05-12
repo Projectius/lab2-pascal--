@@ -3,8 +3,8 @@
 
 struct HLNode
 {
-	Node* pnext;
-	Node* pdown;
+	HLNode* pnext;
+	HLNode* pdown;
 	Lexeme* lex;
 
 	void addNext(HLNode* child);
