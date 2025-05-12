@@ -1,25 +1,23 @@
 #pragma once
 #include"lexer.h"
 
-struct HLNode
-{
-	HLNode* pnext;
-	HLNode* pdown;
-	Lexeme* lex;
+enum NodeType {
+	PROGRAM,    // Корень программы
+	IF,         // Условный оператор
+	ELSE,       // Блок else
+	STATEMENT   // Исполняемый оператор
+};
 
-	HLNode() : pnext(nullptr), pdown(nullptr), lex(nullptr) {}
-	HLNode(Lexeme* l) : pnext(nullptr), pdown(nullptr), lex(l) {}
+struct HLNode {
+	NodeType type;          // Тип узла
+	vector<Lexeme> expr;    // Лексемы условия или оператора
+	HLNode* pnext = nullptr;// Следующий элемент на том же уровне
+	HLNode* pdown = nullptr;// Вложенная структура (тело if/else)
+
+	HLNode(NodeType t, const vector<Lexeme>& lex)
+		: type(t), expr(lex) {
+	}
 
 	void addNext(HLNode* child);
 	void addChild(HLNode* child);
 };
-
-
-//class Hierarchical_list
-//{
-//	ASTNode* head;
-//public:
-//	Hierarchical_list(vector<Lexeme> lexems);
-//	ASTNode* getHead();
-//	~Hierarchical_list();
-//};

@@ -5,46 +5,32 @@
 #include <stdexcept>
 #include <string>
 
+#include <functional>
+
 using namespace std;
 
-class Parser
-{
-public:
-    void CheckForErrors(vector<Lexeme>& lexemes);
-    HLNode* BuildHList(vector<Lexeme>& lexemes);
-
-    HLNode* ParseConst(vector<Lexeme>& lexemes, size_t& pos);
-
-    HLNode* ParseVar(vector<Lexeme>& lexemes, size_t& pos);
-
-    HLNode* ParseStatements(vector<Lexeme>& lexemes, size_t& pos);
-
-    HLNode* ParseIf(vector<Lexeme>& lexemes, size_t& pos);
-
-    HLNode* ParseIO(vector<Lexeme>& lexemes, size_t& pos);
-
-    HLNode* ParseAssignment(vector<Lexeme>& lexemes, size_t& pos);
-
-    HLNode* ParseExpression(vector<Lexeme>& lexemes, size_t& pos);
-
-    HLNode* ParseTerm(vector<Lexeme>& lexemes, size_t& pos);
-
-    bool IsOperator(const Lexeme& lex);
-
+class Parser {
 private:
-    vector<Lexeme> lexemes_;
-    size_t pos_ = 0;
+    vector<Lexeme> lexemes;
+    size_t pos = 0;
 
-    // Вспомогательные методы синтаксического анализа
-    HLNode* ParseExpression();
-    HLNode* ParseTerm();
-    HLNode* ParseFactor();
+    HLNode* current = nullptr;
+    HLNode* root = nullptr;
 
-    // Утилиты
-    Lexeme& Current();
-    void Advance();
-    bool Match(LexemeType type);
-    bool Match(const string& value);
-    void Expect(LexemeType type, const string& errMsg);
-    void Expect(const string& value, const string& errMsg);
+    Lexeme& currentLex();
+    bool match(LexemeType type);
+    bool matchKeyword(const string& kw);
+
+    void advance();
+
+    HLNode* createNode(NodeType type, const vector<Lexeme>& expr = {});
+
+    vector<Lexeme> collectUntil(const function<bool()>& predicate);
+
+    void parseStatement(HLNode* parent);
+    HLNode* parseIf();
+    void parseBlock(HLNode* parent);
+
+public:
+    HLNode* BuildHList(vector<Lexeme>& input);
 };
