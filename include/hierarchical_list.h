@@ -7,6 +7,9 @@ struct HLNode
 	HLNode* pdown;
 	Lexeme* lex;
 
+	HLNode() : pnext(nullptr), pdown(nullptr), lex(nullptr) {}
+	HLNode(Lexeme* l) : pnext(nullptr), pdown(nullptr), lex(l) {}
+
 	void addNext(HLNode* child);
 	void addChild(HLNode* child);
 };

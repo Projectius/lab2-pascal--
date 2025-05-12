@@ -21,7 +21,6 @@ struct Lexeme
 class Lexer
 {
 	static map <string, LexemeType> Database;
-
 public:
 	vector<Lexeme> Tokenize(const string& sourceCode);
 };
