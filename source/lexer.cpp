@@ -12,8 +12,8 @@ map<string, LexemeType> Lexer::Database = {
         { "if", LexemeType::Keyword },
         { "then", LexemeType::Keyword }, // Добавил then, хотя не в списке объектов, но в примере
         { "else", LexemeType::Keyword },
-        { "Read", LexemeType::Keyword },
-        { "Write", LexemeType::Keyword },
+        { "read", LexemeType::Keyword },
+        { "write", LexemeType::Keyword },
         { "div", LexemeType::Operator }, // Согласно ТЗ, div и mod - операторы
         { "mod", LexemeType::Operator },
 
