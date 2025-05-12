@@ -7,9 +7,9 @@ class TableManager
     THashTableChain<string, double> doubletable;
     THashTableChain<string, string> strtable;
 public:
-	void addInt(int val) explicit;
-	void addDouble(double val) explicit;
-	void addString(double val) explicit;
+    void addInt(const std::string& name, int val);
+    void addDouble(const std::string& name, double val);
+    void addString(const std::string& name, const std::string& val);
 
     int& getInt(string name);
     double& getDouble(string name);

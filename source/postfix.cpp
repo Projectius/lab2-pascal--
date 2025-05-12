@@ -38,66 +38,62 @@ void PostfixExecutor::buildPostfix(HLNode* node) // если дерево пос
     }
 }
 
-bool PostfixExecutor::executePostfix() 
-{
-    stack<double> stk;
-    string assignTarget;
+bool PostfixExecutor::executePostfix() {
+    std::stack<double> stk;
+    std::string assignTarget;
 
-    for (const Lexeme& lex : postfix) 
-    {
-        if (lex.type == LexemeType::Number) 
-        {
+    for (const Lexeme& lex : postfix) {
+        if (lex.type == LexemeType::Number) {
             stk.push(std::stod(lex.value));
         }
-        else if (lex.type == LexemeType::Identifier) 
-        {
-            assignTarget = lex.value; // возможно, имя для присваивания
+        else if (lex.type == LexemeType::Identifier) {
+            assignTarget = lex.value;
             stk.push(getValueFromLexeme(lex));
         }
-        else if (lex.type == LexemeType::Operator) 
-        {
-            if (lex.value == ":=") 
-            {
-                if (stk.size() < 2) 
-                    throw std::runtime_error("Недостаточно операндов для присваивания");
+        else if (lex.type == LexemeType::Operator) {
+            if (lex.value == ":=") {
+                if (stk.size() < 2) throw std::runtime_error("Недостаточно операндов для присваивания");
 
-                double value = stk.top(); 
-                stk.pop();
-                double dummy = stk.top(); 
-                stk.pop(); // имя переменной уже есть в assignTarget
+                double value = stk.top(); stk.pop();
+                stk.pop(); // удаляем значение, соответствующее имени (уже знаем assignTarget)
 
-                vartable->assign(assignTarget, value);
+                // Сохраняем в соответствующую таблицу
+                try {
+                    vartable->getInt(assignTarget);  // проверка типа
+                    vartable->addInt(assignTarget, static_cast<int>(value));
+                }
+                catch (...) {
+                    try {
+                        vartable->getDouble(assignTarget);  // проверка типа
+                        vartable->addDouble(assignTarget, value);
+                    }
+                    catch (...) {
+                        throw std::runtime_error("Неизвестный тип переменной: " + assignTarget);
+                    }
+                }
+
                 stk.push(value);
             }
-            else if (isComparisonOperator(lex.value)) 
-            {
-                if (stk.size() < 2) 
-                    throw std::runtime_error("Недостаточно операндов для сравнения");
+            else if (PostfixExecutor::isComparisonOperator(lex.value)) {
+                if (stk.size() < 2) throw std::runtime_error("Недостаточно операндов для сравнения");
 
-                double rhs = stk.top(); 
-                stk.pop();
-                double lhs = stk.top(); 
-                stk.pop();
+                double rhs = stk.top(); stk.pop();
+                double lhs = stk.top(); stk.pop();
 
                 stk.push(evaluateCondition(lex.value, lhs, rhs) ? 1.0 : 0.0);
             }
             else {
-                if (stk.size() < 2) 
-                    throw std::runtime_error("Недостаточно операндов для операции");
+                if (stk.size() < 2) throw std::runtime_error("Недостаточно операндов для операции");
 
-                double rhs = stk.top(); 
-                stk.pop();
-                double lhs = stk.top(); 
-                stk.pop();
+                double rhs = stk.top(); stk.pop();
+                double lhs = stk.top(); stk.pop();
 
                 stk.push(evaluateOperation(lex.value, lhs, rhs));
             }
         }
     }
-    
 
-    if (stk.empty()) 
-        return false;
+    if (stk.empty()) return false;
 
     std::cout << "Result: " << stk.top() << std::endl;
     return true;
@@ -144,5 +140,5 @@ bool PostfixExecutor::evaluateCondition(const std::string& op, double lhs, doubl
 }
 
 bool PostfixExecutor::isComparisonOperator(const std::string& op) {
-    return op == "="  op == "<>"  op == "<"  op == ">"  op == "<=" || op == ">=";
+    return op == "=" || op == "<>" || op == "<" || op == ">" || op == "<=" || op == ">=";
 }
