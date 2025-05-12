@@ -11,7 +11,7 @@ bool Parser::matchKeyword(const string& kw) {
 void Parser::advance() { if (pos < lexemes.size()) pos++; }
 
 HLNode* Parser::createNode(NodeType type, const vector<Lexeme>& expr) {
-    return new HLNode{ type, expr, nullptr, nullptr };
+    return new HLNode{ type, expr};
 }
 
 vector<Lexeme> Parser::collectUntil(const function<bool()>& predicate) {
@@ -39,14 +39,18 @@ void Parser::parseStatement(HLNode* parent) {
 }
 
 HLNode* Parser::parseIf() {
-    advance();
+    advance(); // Пропускаем 'if'
     auto ifNode = createNode(NodeType::IF);
 
+    // Собираем до then/begin, исключая их
     ifNode->expr = collectUntil([&]() {
-        return matchKeyword("then") || matchKeyword("do") ||
-            match(LexemeType::Separator) || matchKeyword("begin");
+        return matchKeyword("then") || matchKeyword("begin");
         });
 
+    // Пропускаем then если есть
+    if (matchKeyword("then")) advance();
+
+    // Обработка тела
     if (matchKeyword("begin")) {
         advance();
         parseBlock(ifNode);
@@ -55,18 +59,12 @@ HLNode* Parser::parseIf() {
         parseStatement(ifNode);
     }
 
+    // Обработка else
     if (matchKeyword("else")) {
         advance();
         auto elseNode = createNode(NodeType::ELSE);
         ifNode->pnext = elseNode;
-
-        if (matchKeyword("begin")) {
-            advance();
-            parseBlock(elseNode);
-        }
-        else {
-            parseStatement(elseNode);
-        }
+        parseStatement(elseNode);
     }
 
     return ifNode;
@@ -116,4 +114,35 @@ HLNode* Parser::BuildHList(vector<Lexeme>& input) {
     }
 
     return root;
+}
+
+// Для преобразования структуры в строку
+std::string HLNodeToString(const HLNode* node, int level = 0) {
+    std::string indent(level * 2, ' ');
+    std::stringstream ss;
+
+    if (!node) return "";
+
+    ss << indent << "[" << NodeTypeToString(node->type);
+    if (!node->expr.empty()) {
+        ss << ": ";
+        for (const auto& lex : node->expr) ss << lex.value << " ";
+    }
+    ss << "]\n";
+
+    if (node->pdown) ss << HLNodeToString(node->pdown, level + 1);
+    if (node->pnext) ss << HLNodeToString(node->pnext, level);
+
+    return ss.str();
+}
+
+// В enum NodeType добавить метод преобразования в строку
+const char* NodeTypeToString(NodeType type) {
+    switch (type) {
+    case PROGRAM: return "PROGRAM";
+    case IF: return "IF";
+    case ELSE: return "ELSE";
+    case STATEMENT: return "STATEMENT";
+    default: return "UNKNOWN";
+    }
 }

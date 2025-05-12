@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 
 #include <functional>
 
@@ -34,3 +35,7 @@ private:
 public:
     HLNode* BuildHList(vector<Lexeme>& input);
 };
+
+std::string HLNodeToString(const HLNode* node, int level);
+
+const char* NodeTypeToString(NodeType type);
