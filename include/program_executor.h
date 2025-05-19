@@ -7,7 +7,7 @@
 class ProgramExecutor
 {
 	TableManager vartable;
-	PostfixExecutor postfix(&vartable);
+	PostfixExecutor postfix();
 	void addVar(string name, int val) explicit;
 	void addVar(string name, double val) explicit;
 public:
