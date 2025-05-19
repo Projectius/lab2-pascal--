@@ -8,6 +8,14 @@ bool Parser::matchKeyword(const string& kw) {
     return pos < lexemes.size() && currentLex().type == LexemeType::Keyword && currentLex().value == kw;
 }
 
+bool Parser::matchSeparator(const string& sep) {
+    return pos < lexemes.size() && currentLex().type == LexemeType::Separator && currentLex().value == sep;
+}
+
+bool Parser::matchIdentifier(const string& id) {
+    return pos < lexemes.size() && currentLex().type == LexemeType::Identifier && currentLex().value == id;
+}
+
 void Parser::advance() { if (pos < lexemes.size()) pos++; }
 
 HLNode* Parser::createNode(NodeType type, const vector<Lexeme>& expr) {
@@ -21,6 +29,71 @@ vector<Lexeme> Parser::collectUntil(const function<bool()>& predicate) {
         advance();
     }
     return res;
+}
+
+HLNode* Parser::parseProgramHeader() {
+    if (!matchKeyword("program"))
+        throw ParseError("Expected 'program'");
+
+    advance();
+    if (!match(LexemeType::Identifier))
+        throw ParseError("Expected program name");
+
+    auto programNode = createNode(NodeType::PROGRAM, { currentLex() });
+    advance();
+
+    if (!matchSeparator(';'))
+        throw ParseError("Expected ';' after program name");
+
+    advance();
+    return programNode;
+}
+
+HLNode* Parser::parseConstSection() {
+    auto constSection = createNode(NodeType::CONST_SECTION);
+    advance(); // Пропускаем 'const'
+
+    while (!matchKeyword("var") && !matchKeyword("begin")) {
+        auto decl = parseDeclaration();
+        constSection->addChild(decl);
+
+        if (!matchSeparator(';'))
+            throw ParseError("Expected ';' in const declaration");
+        advance();
+    }
+    return constSection;
+}
+
+HLNode* Parser::parseDeclaration() {
+    vector<Lexeme> decl;
+    // Идентификаторы
+    do {
+        if (!matchIdentifier())
+            throw ParseError("Expected identifier");
+        decl.push_back(currentLex());
+        advance();
+    } while (matchSeparator(','));
+
+    if (!matchSeparator(':'))
+        throw ParseError("Expected ':' in declaration");
+    decl.push_back(currentLex());
+    advance();
+
+    // Тип
+    if (!matchIdentifier())
+        throw ParseError("Expected type specifier");
+    decl.push_back(currentLex());
+    advance();
+
+    // Инициализация
+    if (matchOperator('=')) {
+        decl.push_back(currentLex());
+        advance();
+        auto expr = parseExpression();
+        decl.insert(decl.end(), expr.begin(), expr.end());
+    }
+
+    return createNode(NodeType::DECLARATION, decl);
 }
 
 void Parser::parseStatement(HLNode* parent) {

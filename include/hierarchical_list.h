@@ -2,10 +2,14 @@
 #include"lexer.h"
 
 enum NodeType {
-	PROGRAM,    // Корень программы
-	IF,         // Условный оператор
-	ELSE,       // Блок else
-	STATEMENT   // Исполняемый оператор
+	PROGRAM,
+	CONST_SECTION,
+	VAR_SECTION,
+	MAIN_BLOCK,
+	DECLARATION,
+	IF,
+	ELSE,
+	STATEMENT
 };
 
 struct HLNode {

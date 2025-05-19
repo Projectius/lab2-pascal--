@@ -1,6 +1,5 @@
 #pragma once
 
-
 class TableManager
 {
     THashTableChain<string, int> inttable;

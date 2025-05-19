@@ -10,6 +10,11 @@
 
 using namespace std;
 
+class ParseError : public exception {
+public:
+    ParseError(const char* const what) : exception(what) {};
+};
+
 class Parser {
 private:
     vector<Lexeme> lexemes;
@@ -22,11 +27,21 @@ private:
     bool match(LexemeType type);
     bool matchKeyword(const string& kw);
 
+    bool matchSeparator(const string& sep);
+
+    bool matchIdentifier(const string& id);
+
     void advance();
 
     HLNode* createNode(NodeType type, const vector<Lexeme>& expr = {});
 
     vector<Lexeme> collectUntil(const function<bool()>& predicate);
+
+    HLNode* parseProgramHeader();
+
+    HLNode* parseConstSection();
+
+    HLNode* parseDeclaration();
 
     void parseStatement(HLNode* parent);
     HLNode* parseIf();
