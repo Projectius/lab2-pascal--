@@ -1,23 +1,17 @@
 #pragma once
 
+#include <string>
+#include <vector>
+#include <list>
+#include <functional>
+#include <stdexcept>
+#include <iostream> 
 
-class TableManager
-{
-    THashTableChain<string, int> inttable;
-    THashTableChain<string, double> doubletable;
-    THashTableChain<string, string> strtable;
-public:
-    void addInt(const std::string& name, int val);
-    void addDouble(const std::string& name, double val);
-    void addString(const std::string& name, const std::string& val);
 
-    int& getInt(string name);
-    double& getDouble(string name);
-    string& getString(string name);
-};
+using namespace std;
 
 template <typename TKey, typename TValue>
-class THashTableChain // хеш-таблица с цепочками
+class THashTableChain
 {
     struct Node
     {
@@ -35,15 +29,16 @@ class THashTableChain // хеш-таблица с цепочками
 public:
     THashTableChain(size_t buckets = 10) : bucketCount(buckets)
     {
+        if (buckets == 0) throw std::invalid_argument("Number of buckets must be positive");
         data.resize(bucketCount);
     }
 
-    string GetName() const override
+    string GetName() const
     {
         return "Hash Table Chain";
     }
 
-    size_t size() const noexcept override
+    size_t size() const 
     {
         size_t count = 0;
         for (const auto& chain : data)
@@ -52,8 +47,7 @@ public:
         }
         return count;
     }
-
-    void Insert(const TKey& key, const TValue& value) override
+    void Insert(const TKey& key, const TValue& value)
     {
         size_t index = HashFunction(key);
         for (auto& node : data[index])
@@ -66,7 +60,7 @@ public:
         data[index].push_back({ key, value });
     }
 
-    void Delete(const TKey& key) override
+    void Delete(const TKey& key)
     {
         size_t index = HashFunction(key);
         data[index].remove_if([&key](const Node& node)
@@ -75,7 +69,7 @@ public:
             });
     }
 
-    TValue* Find(const TKey& key) override
+    TValue* Find(const TKey& key)
     {
         size_t index = HashFunction(key);
         for (auto& node : data[index])
@@ -86,7 +80,7 @@ public:
         return nullptr;
     }
 
-    void Print() const override
+    void Print() const
     {
         cout << "Hash Table Chain Contents: " << endl;
         for (size_t i = 0; i < data.size(); ++i)
@@ -96,6 +90,7 @@ public:
             {
                 cout << "  Key: " << node.key << ", Value: " << node.value << endl;
             }
+            cout << endl;
         }
     }
 
@@ -107,7 +102,38 @@ public:
             if (node.key == key)
                 return node.value;
         }
-        throw out_of_range("Key not found");
+        throw out_of_range("Key not found in hash table: " + key);
     }
 
+    const TValue& operator[](const TKey& key) const
+    {
+        size_t index = HashFunction(key);
+        for (const auto& node : data[index])
+        {
+            if (node.key == key)
+                return node.value;
+        }
+
+        throw out_of_range("Key not found in hash table: " + key);
+    }
+};
+
+
+
+class TableManager
+{
+    THashTableChain<string, int> inttable;
+    THashTableChain<string, double> doubletable;
+
+public:
+    TableManager() = default;
+
+    void addInt(const std::string& name, int val);
+    void addDouble(const std::string& name, double val);
+
+    int& getInt(string name);
+    double& getDouble(string name);
+
+    bool hasInt(const std::string& name) const { return inttable.Find(name) != nullptr; }
+    bool hasDouble(const std::string& name) const { return doubletable.Find(name) != nullptr; }
 };
