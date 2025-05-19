@@ -2,18 +2,15 @@
 
 Lexeme& Parser::currentLex() { return lexemes[pos]; }
 
-bool Parser::match(LexemeType type) { return pos < lexemes.size() && currentLex().type == type; }
-
-bool Parser::matchKeyword(const string& kw) {
-    return pos < lexemes.size() && currentLex().type == LexemeType::Keyword && currentLex().value == kw;
+bool Parser::matchToken(LexemeType type, const string& value = "") {
+    if (pos >= lexemes.size()) return false;
+    const auto& lex = lexemes[pos];
+    return lex.type == type && (value.empty() || lex.value == value);
 }
 
-bool Parser::matchSeparator(const string& sep) {
-    return pos < lexemes.size() && currentLex().type == LexemeType::Separator && currentLex().value == sep;
-}
-
-bool Parser::matchIdentifier(const string& id) {
-    return pos < lexemes.size() && currentLex().type == LexemeType::Identifier && currentLex().value == id;
+bool Parser::matchSymbol(char symbol) {
+    return matchToken(LexemeType::Separator, string(1, symbol))
+        || matchToken(LexemeType::Operator, string(1, symbol));
 }
 
 void Parser::advance() { if (pos < lexemes.size()) pos++; }
@@ -113,31 +110,47 @@ void Parser::parseStatement(HLNode* parent) {
 
 HLNode* Parser::parseIf() {
     advance(); // Пропускаем 'if'
-    auto ifNode = createNode(NodeType::IF);
 
-    // Собираем до then/begin, исключая их
-    ifNode->expr = collectUntil([&]() {
-        return matchKeyword("then") || matchKeyword("begin");
-        });
-
-    // Пропускаем then если есть
-    if (matchKeyword("then")) advance();
-
-    // Обработка тела
-    if (matchKeyword("begin")) {
+    // Сбор условия с учетом скобок
+    vector<Lexeme> condition;
+    if (matchSeparator('(')) {
+        condition.push_back(currentLex());
         advance();
-        parseBlock(ifNode);
+    }
+
+    auto expr = parseExpression();
+    condition.insert(condition.end(), expr.begin(), expr.end());
+
+    if (matchSeparator(')')) {
+        condition.push_back(currentLex());
+        advance();
+    }
+
+    auto ifNode = createNode(NodeType::IF, condition);
+
+    if (!matchKeyword("then"))
+        throw ParseError("Expected 'then' after if condition");
+    advance();
+
+    // Тело if
+    if (matchKeyword("begin")) {
+        ifNode->addChild(parseBlock());
     }
     else {
-        parseStatement(ifNode);
+        ifNode->addChild(parseStatement());
     }
 
     // Обработка else
     if (matchKeyword("else")) {
-        advance();
         auto elseNode = createNode(NodeType::ELSE);
-        ifNode->pnext = elseNode;
-        parseStatement(elseNode);
+        advance();
+        if (matchKeyword("begin")) {
+            elseNode->addChild(parseBlock());
+        }
+        else {
+            elseNode->addChild(parseStatement());
+        }
+        ifNode->addNext(elseNode);
     }
 
     return ifNode;
@@ -167,26 +180,22 @@ void Parser::parseBlock(HLNode* parent) {
 }
 
 HLNode* Parser::BuildHList(vector<Lexeme>& input) {
-    lexemes = input;
-    root = createNode(NodeType::PROGRAM);
-    current = root;
+    resetParser(input);
+    auto program = parseProgramHeader();
 
-    while (pos < lexemes.size()) {
-        if (matchKeyword("if")) {
-            auto node = parseIf();
-            current->pdown = node;
-            current = node;
-        }
-        else if (match(LexemeType::Keyword) && currentLex().value == "begin") {
-            advance();
-            parseBlock(root);
-        }
-        else {
-            parseStatement(root);
-        }
-    }
+    // Обработка секций
+    if (matchKeyword("const"))
+        program->addChild(parseConstSection());
 
-    return root;
+    if (matchKeyword("var"))
+        program->addChild(parseVarSection());
+
+    // Основной блок
+    if (!matchKeyword("begin"))
+        throw ParseError("Expected 'begin'");
+    program->addChild(parseMainBlock());
+
+    return program;
 }
 
 // Для преобразования структуры в строку

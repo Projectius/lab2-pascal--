@@ -24,12 +24,11 @@ private:
     HLNode* root = nullptr;
 
     Lexeme& currentLex();
-    bool match(LexemeType type);
-    bool matchKeyword(const string& kw);
 
-    bool matchSeparator(const string& sep);
+    bool matchToken(LexemeType type, const string& value);
 
-    bool matchIdentifier(const string& id);
+    bool matchSymbol(char symbol);
+    
 
     void advance();
 
