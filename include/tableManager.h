@@ -75,7 +75,18 @@ public:
         for (auto& node : data[index])
         {
             if (node.key == key)
-                return &node.value;
+                return &node.value; 
+        }
+        return nullptr;
+    }
+
+    const TValue* Find(const TKey& key) const 
+    {
+        size_t index = HashFunction(key);
+        for (const auto& node : data[index])
+        {
+            if (node.key == key)
+                return &node.value; 
         }
         return nullptr;
     }
