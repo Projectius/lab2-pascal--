@@ -25,6 +25,10 @@ private:
 
     Lexeme& currentLex();
 
+    bool match(LexemeType type);
+
+    bool matchKeyword(const string& kw);
+
     bool matchToken(LexemeType type, const string& value);
 
     bool matchSymbol(char symbol);

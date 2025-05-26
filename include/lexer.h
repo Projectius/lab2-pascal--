@@ -4,7 +4,8 @@
 #include<string>
 using namespace std;
 
-enum class LexemeType { Unknown, Keyword, Identifier, Number, Operator, Separator, StringLiteral, EndOfFile};
+enum class LexemeType { Unknown, Keyword, Identifier, VarType, Number, Operator, Separator, StringLiteral, EndOfFile};
+
 
 
 struct Lexeme
@@ -17,6 +18,8 @@ struct Lexeme
 		return type == other.type && value == other.value;
 	}
 };
+
+std::ostream& operator<<(std::ostream& os, const Lexeme& lexeme);
 
 class Lexer
 {

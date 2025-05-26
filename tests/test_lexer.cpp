@@ -6,22 +6,7 @@
 // Добавляем оператор вывода для Lexeme для удобства отладки
 // (хотя для EXPECT_EQ<vector> он не строго обязателен,
 // operator== для Lexeme *обязателен* для сравнения векторов)
-std::ostream& operator<<(std::ostream& os, const Lexeme& lexeme) 
-{
-    os << "{type: ";
-    switch (lexeme.type) {
-    case LexemeType::Unknown: os << "Unknown"; break;
-    case LexemeType::Keyword: os << "Keyword"; break;
-    case LexemeType::Identifier: os << "Identifier"; break;
-    case LexemeType::Number: os << "Number"; break;
-    case LexemeType::Operator: os << "Operator"; break;
-    case LexemeType::Separator: os << "Separator"; break;
-    case LexemeType::StringLiteral: os << "StringLiteral"; break;
-    case LexemeType::EndOfFile: os << "EndOfFile"; break;
-    }
-    os << ", value: \"" << lexeme.value << "\"}";
-    return os;
-}
+
 
 
 TEST(Lexer, can_tokenize_empty_string)
@@ -262,4 +247,41 @@ TEST(Lexer, handles_dot_at_end) {
         { LexemeType::EndOfFile, "" }
     };
     EXPECT_EQ(lexer.Tokenize(source), expected);
+}
+
+TEST(Lexer, full_program) {
+    Lexer lexer;
+    std::string source =
+        R"(     program Example;
+        const
+        Pi : double = 3.1415926;
+    var
+        num1, num2: integer;
+    Res, d: double;
+    begin
+        num1 := 5;
+    Write("Введите четное целое число: ");
+    Read(num2);
+    Write("Введите вещественное число: ");
+    Read(d);
+    if (b mod 2 = 0) then
+        begin
+        Res := (num1 - num2 * 5 div 2) / (d * 2);
+    Write("Результат = ", Res);
+    end
+    else
+        Write("Неверный ввод");
+    end.)";
+    std::vector<Lexeme> expected = {
+        { LexemeType::Keyword, "end" },
+        { LexemeType::Separator, "." },
+        { LexemeType::EndOfFile, "" }
+    };
+    auto res = lexer.Tokenize(source);
+    for (auto i : res)
+        cout << i;
+
+    ADD_FAILURE();
+
+    //EXPECT_EQ(lexer.Tokenize(source), expected);
 }

@@ -5,6 +5,7 @@
 
 map<string, LexemeType> Lexer::Database = {
         // Ключевые слова из ТЗ и примера
+        { "program", LexemeType::Keyword },
         { "const", LexemeType::Keyword },
         { "var", LexemeType::Keyword },
         { "begin", LexemeType::Keyword },
@@ -16,6 +17,9 @@ map<string, LexemeType> Lexer::Database = {
         { "write", LexemeType::Keyword },
         { "div", LexemeType::Operator }, // Согласно ТЗ, div и mod - операторы
         { "mod", LexemeType::Operator },
+
+        {"integer", LexemeType::VarType},
+        {"double", LexemeType::VarType},
 
         // Операторы из ТЗ и примера
         { "+", LexemeType::Operator },
@@ -42,6 +46,25 @@ map<string, LexemeType> Lexer::Database = {
         // Давайте предположим, что объявления могут быть с типом: `var x : integer;` и без: `var x, y;`.
         // Двоеточие нужно для объявлений с типом. Добавим его как разделитель.
 };
+
+std::ostream& operator<<(std::ostream& os, const Lexeme& lexeme)
+{
+    os << "{";
+    switch (lexeme.type) {
+    case LexemeType::Unknown: os << "Unknown"; break;
+    case LexemeType::Keyword: os << "Keyword"; break;
+    case LexemeType::Identifier: os << "IDENTIFIER"; break;
+    case LexemeType::Number: os << "Number"; break;
+    case LexemeType::Operator: os << "Operator"; break;
+    case LexemeType::Separator: os << "Separator"; break;
+    case LexemeType::StringLiteral: os << "StringLiteral"; break;
+    case LexemeType::EndOfFile: os << "EndOfFile"; break;
+    case LexemeType::VarType: os << "VarType"; break;
+    default: os << "???";break;
+    }
+    os << " : \"" << lexeme.value << "\"}\n";
+    return os;
+}
 
 vector<Lexeme> Lexer::Tokenize(const string& sourceCode)
 {
