@@ -1,14 +1,7 @@
 #include "gtest.h"
 #include "tableManager.h"
 
-
-TEST(THashTableChain, can_create_empty_hashtablechain) {
-    ASSERT_NO_THROW(THashTableChain<std::string, int> table);
-    THashTableChain<std::string, int> table;
-    EXPECT_EQ(0, table.size());
-}
-
-TEST(THashTableChain, can_get_size) {
+TEST(THashTableChainTest, can_get_size) {
     THashTableChain<std::string, int> table;
     EXPECT_EQ(0, table.size());
 
@@ -22,7 +15,7 @@ TEST(THashTableChain, can_get_size) {
     EXPECT_EQ(2, table.size());
 }
 
-TEST(THashTableChain, can_get_element_by_index) {
+TEST(THashTableChainTest, can_get_element_by_index) {
     THashTableChain<std::string, int> table;
     table.Insert("key1", 1);
     table.Insert("key2", 2);
@@ -33,7 +26,7 @@ TEST(THashTableChain, can_get_element_by_index) {
     EXPECT_THROW(table["nonexistent_key"], std::out_of_range);
 }
 
-TEST(THashTableChain, can_delete) {
+TEST(THashTableChainTest, can_delete) {
     THashTableChain<std::string, int> table;
     table.Insert("key1", 1);
     table.Insert("key2", 2);
@@ -48,7 +41,7 @@ TEST(THashTableChain, can_delete) {
     EXPECT_EQ(0, table.size());
 }
 
-TEST(THashTableChain, can_find) {
+TEST(THashTableChainTest, can_find) {
     THashTableChain<std::string, int> table;
     table.Insert("key1", 1);
     table.Insert("key2", 2);
@@ -62,7 +55,7 @@ TEST(THashTableChain, can_find) {
     EXPECT_EQ(nullptr, table.Find("key3"));
 }
 
-TEST(THashTableChain, can_insert) {
+TEST(THashTableChainTest, can_insert) {
     THashTableChain<std::string, int> table;
     table.Insert("key1", 1);
     table.Insert("key2", 2);
@@ -76,7 +69,7 @@ TEST(THashTableChain, can_insert) {
     EXPECT_EQ(1, *table.Find("key1"));
 }
 
-TEST(THashTableChain, handles_collisions_correctly) {
+TEST(THashTableChainTest, handles_collisions_correctly) {
     THashTableChain<int, int> table(1);
     table.Insert(1, 10);
     table.Insert(2, 20);
@@ -90,7 +83,7 @@ TEST(THashTableChain, handles_collisions_correctly) {
     EXPECT_EQ(20, *table.Find(2));
 }
 
-TEST(THashTableChain, can_print_contents) {
+TEST(THashTableChainTest, can_print_contents) {
     THashTableChain<std::string, int> table;
 
     ASSERT_NO_THROW(table.Print());
@@ -100,16 +93,7 @@ TEST(THashTableChain, can_print_contents) {
     ASSERT_NO_THROW(table.Print());
 }
 
-
-
-
-
-
-
-
-
-
-TTEST(TableManagerTest, AddAndGetInt) {
+TEST(TableManagerTest, AddAndGetInt) {
     TableManager manager;
     manager.addInt("myIntVar", 123);
     EXPECT_EQ(manager.getInt("myIntVar"), 123);

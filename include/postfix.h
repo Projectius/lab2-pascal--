@@ -20,6 +20,3 @@ public:
 	void toPostfix(HLNode* start);
 	bool executePostfix();
 };
-
-
-    

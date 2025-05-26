@@ -131,11 +131,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\include\postfix.h" />
+    <ClInclude Include="..\include\tableManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\source\postfix.cpp" />
+    <ClCompile Include="..\source\table_manager.cpp" />
     <ClCompile Include="..\tests\test_main.cpp" />
     <ClCompile Include="..\tests\test_postfix.cpp" />
+    <ClCompile Include="..\tests\test_tablemanager.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
