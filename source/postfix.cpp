@@ -76,44 +76,22 @@ void PostfixExecutor::toPostfix(HLNode* start) {
     buildPostfix(start);
 }
 
-bool PostfixExecutor::executePostfix() {
+double PostfixExecutor::executePostfix() {
     stack<double> stk;
-    string assignTarget;
 
     for (const Lexeme& lex : postfix) {
         if (lex.type == LexemeType::Number) {
             stk.push(stod(lex.value));
         }
         else if (lex.type == LexemeType::Identifier) {
-            assignTarget = lex.value;
             stk.push(getValueFromLexeme(lex));
         }
         else if (lex.type == LexemeType::Operator) {
             if (lex.value == ":=") {
-                if (stk.size() < 2) throw runtime_error("Недостаточно операндов для присваивания");
-
-                double value = stk.top(); stk.pop();
-                stk.pop(); // Удаляем значение переменной
-
-                // Сохраняем в соответствующую таблицу
-                try {
-                    vartable->getInt(assignTarget);
-                    vartable->addInt(assignTarget, static_cast<int>(value));
-                }
-                catch (...) {
-                    try {
-                        vartable->getDouble(assignTarget);
-                        vartable->addDouble(assignTarget, value);
-                    }
-                    catch (...) {
-                        throw runtime_error("Неизвестный тип переменной: " + assignTarget);
-                    }
-                }
-
-                stk.push(value);
+                throw runtime_error("Assignment operator (:=) should be handled by ProgramExecutor, not PostfixExecutor directly.");
             }
             else if (isComparisonOperator(lex.value)) {
-                if (stk.size() < 2) throw runtime_error("Недостаточно операндов для сравнения");
+                if (stk.size() < 2) throw runtime_error("Not enough operands for comparison.");
 
                 double rhs = stk.top(); stk.pop();
                 double lhs = stk.top(); stk.pop();
@@ -121,17 +99,22 @@ bool PostfixExecutor::executePostfix() {
                 stk.push(evaluateCondition(lex.value, lhs, rhs) ? 1.0 : 0.0);
             }
             else {
-                if (stk.size() < 2) throw runtime_error("Недостаточно операндов для операции");
+                if (stk.size() < 2) throw runtime_error("Not enough operands for operation: " + lex.value);
 
                 double rhs = stk.top(); stk.pop();
                 double lhs = stk.top(); stk.pop();
-
                 stk.push(evaluateOperation(lex.value, lhs, rhs));
             }
         }
+        else {
+            throw runtime_error("Unexpected lexeme type in postfix expression: " + lex.value);
+        }
     }
 
-    return !stk.empty() && stk.top() != 0;
+    if (stk.empty()) {
+        return 0.0;
+    }
+    return stk.top();
 }
 
 double PostfixExecutor::getValueFromLexeme(const Lexeme& lex) {

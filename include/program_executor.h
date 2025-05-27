@@ -3,13 +3,21 @@
 #include "lexer.h"
 #include "postfix.h"
 #include "tableManager.h"
+#include <iostream>
+#include <string>
 
 class ProgramExecutor
 {
-	TableManager vartable;
-	PostfixExecutor postfix();
-	void addVar(string name, int val) explicit;
-	void addVar(string name, double val) explicit;
+    TableManager vartable;
+    PostfixExecutor postfix;
+
+
+    void processNode(HLNode* node);
+    void handleDeclaration(HLNode* node);
+    void handleStatement(HLNode* node);
+    void handleIfElse(HLNode* node);
+    void handleCall(HLNode* node);
 public:
-	void Execute(HLNode* head);
+    ProgramExecutor() : postfix(&vartable) {}
+    void Execute(HLNode* head);
 };

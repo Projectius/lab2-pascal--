@@ -18,5 +18,5 @@ class PostfixExecutor
 public:
 	PostfixExecutor(TableManager* varTablep);
 	void toPostfix(HLNode* start);
-	bool executePostfix();
+	double executePostfix();
 };

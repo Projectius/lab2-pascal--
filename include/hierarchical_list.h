@@ -1,23 +1,28 @@
-#pragma once
+п»ї#pragma once
 #include"lexer.h"
 
 enum NodeType {
-	PROGRAM,    // Корень программы
-	IF,         // Условный оператор
-	ELSE,       // Блок else
-	STATEMENT   // Исполняемый оператор
+    PROGRAM,        // ГЉГ®Г°ГҐГ­Гј ГЇГ°Г®ГЈГ°Г Г¬Г¬Г»
+    CONST_SECTION,  // Г‘ГҐГЄГ¶ГЁГї ГЄГ®Г­Г±ГІГ Г­ГІ
+    VAR_SECTION,    // Г‘ГҐГЄГ¶ГЁГї ГЇГҐГ°ГҐГ¬ГҐГ­Г­Г»Гµ
+    MAIN_BLOCK,     // ГЋГ±Г­Г®ГўГ­Г®Г© ГЎГ«Г®ГЄ ГЇГ°Г®ГЈГ°Г Г¬Г¬Г» (begin..end)
+    DECLARATION,    // ГЋГЎГєГїГўГ«ГҐГ­ГЁГҐ (ГЄГ®Г­Г±ГІГ Г­ГІГ» ГЁГ«ГЁ ГЇГҐГ°ГҐГ¬ГҐГ­Г­Г®Г©)
+    IF,             // Г“Г±Г«Г®ГўГ­Г»Г© Г®ГЇГҐГ°Г ГІГ®Г°
+    ELSE,           // ГЃГ«Г®ГЄ else
+    STATEMENT,       // Г€Г±ГЇГ®Г«Г­ГїГҐГ¬Г»Г© Г®ГЇГҐГ°Г ГІГ®Г°
+    CALL // ГўГ»Г§Г®Гў ГґГіГ­ГЄГ¶ГЁГЁ
 };
 
 struct HLNode {
-	NodeType type;          // Тип узла
-	vector<Lexeme> expr;    // Лексемы условия или оператора
-	HLNode* pnext = nullptr;// Следующий элемент на том же уровне
-	HLNode* pdown = nullptr;// Вложенная структура (тело if/else)
+    NodeType type;          // Г’ГЁГЇ ГіГ§Г«Г 
+    vector<Lexeme> expr;    // Г‹ГҐГЄГ±ГҐГ¬Г» ГіГ±Г«Г®ГўГЁГї ГЁГ«ГЁ Г®ГЇГҐГ°Г ГІГ®Г°Г 
+    HLNode* pnext = nullptr;// Г‘Г«ГҐГ¤ГіГѕГ№ГЁГ© ГЅГ«ГҐГ¬ГҐГ­ГІ Г­Г  ГІГ®Г¬ Г¦ГҐ ГіГ°Г®ГўГ­ГҐ
+    HLNode* pdown = nullptr;// Г‚Г«Г®Г¦ГҐГ­Г­Г Гї Г±ГІГ°ГіГЄГІГіГ°Г  (ГІГҐГ«Г® if/else)
 
-	HLNode(NodeType t, const vector<Lexeme>& lex)
-		: type(t), expr(lex) {
-	}
+    HLNode(NodeType t, const vector<Lexeme>& lex)
+        : type(t), expr(lex) {
+    }
 
-	void addNext(HLNode* child);
-	void addChild(HLNode* child);
+    void addNext(HLNode* child);
+    void addChild(HLNode* child);
 };
