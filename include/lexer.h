@@ -20,6 +20,7 @@ struct Lexeme
 };
 
 std::ostream& operator<<(std::ostream& os, const Lexeme& lexeme);
+string lexvectostr(vector<Lexeme> v);
 
 class Lexer
 {

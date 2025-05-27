@@ -66,6 +66,14 @@ std::ostream& operator<<(std::ostream& os, const Lexeme& lexeme)
     return os;
 }
 
+string lexvectostr(vector<Lexeme> v)
+{
+    stringstream ss;
+    for (auto i : v)
+        ss << i;
+    return ss.str();
+}
+
 vector<Lexeme> Lexer::Tokenize(const string& sourceCode)
 {
     vector<Lexeme> result;
