@@ -133,6 +133,7 @@
     <ClInclude Include="..\include\postfix.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\include\hierarchical_list.cpp" />
     <ClCompile Include="..\source\postfix.cpp" />
     <ClCompile Include="..\tests\test_main.cpp" />
     <ClCompile Include="..\tests\test_postfix.cpp" />

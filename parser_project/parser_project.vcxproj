@@ -130,6 +130,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\source\lexer.cpp" />
     <ClCompile Include="..\source\parser.cpp" />
     <ClCompile Include="..\tests\test_main.cpp" />
     <ClCompile Include="..\tests\test_parser.cpp" />

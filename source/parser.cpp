@@ -23,9 +23,46 @@ vector<Lexeme> Parser::collectUntil(const function<bool()>& predicate) {
     return res;
 }
 
+// Парсит одно объявление (константы или переменной)
+vector<Lexeme> Parser::parseDeclaration() {
+    vector<Lexeme> decl;
+    // Собираем до точки с запятой
+    decl = collectUntil([&]() { return match(LexemeType::Separator) && currentLex().value == ";"; });
+    advance(); // Пропускаем точку с запятой
+    return decl;
+}
+
+// Парсит секцию const или var
+void Parser::parseSection(HLNode* parent, NodeType sectionType) {
+    advance(); // Пропускаем "const" или "var"
+    auto sectionNode = createNode(sectionType);
+
+    // Добавляем секцию как дочерний узел к родителю
+    if (!parent->pdown) parent->pdown = sectionNode;
+    else {
+        auto last = parent->pdown;
+        while (last->pnext) last = last->pnext;
+        last->pnext = sectionNode;
+    }
+
+    // Парсим все объявления в секции
+    while (pos < lexemes.size() && !matchKeyword("var") && !matchKeyword("begin")) {
+        auto decl = parseDeclaration();
+        if (!decl.empty()) {
+            auto declNode = createNode(NodeType::DECLARATION, decl);
+            if (!sectionNode->pdown) sectionNode->pdown = declNode;
+            else {
+                auto lastDecl = sectionNode->pdown;
+                while (lastDecl->pnext) lastDecl = lastDecl->pnext;
+                lastDecl->pnext = declNode;
+            }
+        }
+    }
+}
+
 void Parser::parseStatement(HLNode* parent) {
     auto stmt = collectUntil([&]() { return match(LexemeType::Separator) && currentLex().value == ";"; });
-    advance();
+    advance(); // Пропускаем точку с запятой
 
     if (!stmt.empty()) {
         auto node = createNode(NodeType::STATEMENT, stmt);
@@ -42,7 +79,7 @@ HLNode* Parser::parseIf() {
     advance(); // Пропускаем 'if'
     auto ifNode = createNode(NodeType::IF);
 
-    // Собираем до then/begin, исключая их
+    // Собираем условие до then/begin
     ifNode->expr = collectUntil([&]() {
         return matchKeyword("then") || matchKeyword("begin");
         });
@@ -98,18 +135,37 @@ HLNode* Parser::BuildHList(vector<Lexeme>& input) {
     root = createNode(NodeType::PROGRAM);
     current = root;
 
-    while (pos < lexemes.size()) {
-        if (matchKeyword("if")) {
-            auto node = parseIf();
-            current->pdown = node;
-            current = node;
-        }
-        else if (match(LexemeType::Keyword) && currentLex().value == "begin") {
+    // Пропускаем заголовок программы (program name;)
+    if (matchKeyword("program")) {
+        advance();
+        while (pos < lexemes.size() && !(match(LexemeType::Separator) && currentLex().value == ";")) {
             advance();
-            parseBlock(root);
+        }
+        advance(); // Пропускаем точку с запятой
+    }
+
+    // Парсим секции const и var
+    while (pos < lexemes.size()) {
+        if (matchKeyword("const")) {
+            parseSection(root, NodeType::CONST_SECTION);
+        }
+        else if (matchKeyword("var")) {
+            parseSection(root, NodeType::VAR_SECTION);
+        }
+        else if (matchKeyword("begin")) {
+            advance();
+            auto mainBlock = createNode(NodeType::MAIN_BLOCK);
+            if (!root->pdown) root->pdown = mainBlock;
+            else {
+                auto last = root->pdown;
+                while (last->pnext) last = last->pnext;
+                last->pnext = mainBlock;
+            }
+            parseBlock(mainBlock);
+            break;
         }
         else {
-            parseStatement(root);
+            advance(); // Пропускаем неизвестные лексемы перед begin
         }
     }
 
@@ -140,6 +196,10 @@ std::string HLNodeToString(const HLNode* node, int level = 0) {
 const char* NodeTypeToString(NodeType type) {
     switch (type) {
     case PROGRAM: return "PROGRAM";
+    case CONST_SECTION: return "CONST_SECTION";
+    case VAR_SECTION: return "VAR_SECTION";
+    case MAIN_BLOCK: return "MAIN_BLOCK";
+    case DECLARATION: return "DECLARATION";
     case IF: return "IF";
     case ELSE: return "ELSE";
     case STATEMENT: return "STATEMENT";

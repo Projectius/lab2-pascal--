@@ -27,12 +27,7 @@ private:
 
     bool match(LexemeType type);
 
-    bool matchKeyword(const string& kw);
-
-    bool matchToken(LexemeType type, const string& value);
-
-    bool matchSymbol(char symbol);
-    
+    bool matchKeyword(const string& kw);  
 
     void advance();
 
@@ -40,11 +35,10 @@ private:
 
     vector<Lexeme> collectUntil(const function<bool()>& predicate);
 
-    HLNode* parseProgramHeader();
+    vector<Lexeme> parseDeclaration();
 
-    HLNode* parseConstSection();
 
-    HLNode* parseDeclaration();
+    void parseSection(HLNode* parent, NodeType sectionType);
 
     void parseStatement(HLNode* parent);
     HLNode* parseIf();
