@@ -18,6 +18,9 @@
     <ClInclude Include="..\include\postfix.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\tableManager.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\source\postfix.cpp">
@@ -29,7 +32,10 @@
     <ClCompile Include="..\tests\test_postfix.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="..\include\hierarchical_list.cpp">
+    <ClCompile Include="..\source\table_manager.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="..\tests\test_tablemanager.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
