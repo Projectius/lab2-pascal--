@@ -134,6 +134,7 @@
     <ClInclude Include="..\include\tableManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\include\hierarchical_list.cpp" />
     <ClCompile Include="..\source\postfix.cpp" />
     <ClCompile Include="..\source\table_manager.cpp" />
     <ClCompile Include="..\tests\test_main.cpp" />

@@ -10,6 +10,11 @@
 
 using namespace std;
 
+class ParseError : public exception {
+public:
+    ParseError(const char* const what) : exception(what) {};
+};
+
 class Parser {
 private:
     vector<Lexeme> lexemes;
@@ -19,8 +24,10 @@ private:
     HLNode* root = nullptr;
 
     Lexeme& currentLex();
+
     bool match(LexemeType type);
-    bool matchKeyword(const string& kw);
+
+    bool matchKeyword(const string& kw);  
 
     void advance();
 
@@ -28,7 +35,13 @@ private:
 
     vector<Lexeme> collectUntil(const function<bool()>& predicate);
 
+    vector<Lexeme> parseDeclaration();
+
+
+    void parseSection(HLNode* parent, NodeType sectionType);
+
     void parseStatement(HLNode* parent);
+    HLNode* parseFunctionCall();
     HLNode* parseIf();
     void parseBlock(HLNode* parent);
 

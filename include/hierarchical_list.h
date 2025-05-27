@@ -2,15 +2,15 @@
 #include"lexer.h"
 
 enum NodeType {
-    PROGRAM,        // Êîðåíü ïðîãðàììû
-    CONST_SECTION,  // Ñåêöèÿ êîíñòàíò
-    VAR_SECTION,    // Ñåêöèÿ ïåðåìåííûõ
-    MAIN_BLOCK,     // Îñíîâíîé áëîê ïðîãðàììû (begin..end)
-    DECLARATION,    // Îáúÿâëåíèå (êîíñòàíòû èëè ïåðåìåííîé)
-    IF,             // Óñëîâíûé îïåðàòîð
-    ELSE,           // Áëîê else
-    STATEMENT,       // Èñïîëíÿåìûé îïåðàòîð
-    CALL // âûçîâ ôóíêöèè
+    PROGRAM,        // Корень программы
+    CONST_SECTION,  // Секция констант
+    VAR_SECTION,    // Секция переменных
+    MAIN_BLOCK,     // Основной блок программы (begin..end)
+    DECLARATION,    // Объявление (константы или переменной)
+    IF,             // Условный оператор
+    ELSE,           // Блок else
+    STATEMENT,       // Исполняемый оператор
+	CALL // вызов функции
 };
 
 struct HLNode {

@@ -6,22 +6,7 @@
 // Добавляем оператор вывода для Lexeme для удобства отладки
 // (хотя для EXPECT_EQ<vector> он не строго обязателен,
 // operator== для Lexeme *обязателен* для сравнения векторов)
-std::ostream& operator<<(std::ostream& os, const Lexeme& lexeme) 
-{
-    os << "{type: ";
-    switch (lexeme.type) {
-    case LexemeType::Unknown: os << "Unknown"; break;
-    case LexemeType::Keyword: os << "Keyword"; break;
-    case LexemeType::Identifier: os << "Identifier"; break;
-    case LexemeType::Number: os << "Number"; break;
-    case LexemeType::Operator: os << "Operator"; break;
-    case LexemeType::Separator: os << "Separator"; break;
-    case LexemeType::StringLiteral: os << "StringLiteral"; break;
-    case LexemeType::EndOfFile: os << "EndOfFile"; break;
-    }
-    os << ", value: \"" << lexeme.value << "\"}";
-    return os;
-}
+
 
 
 TEST(Lexer, can_tokenize_empty_string)
@@ -262,4 +247,128 @@ TEST(Lexer, handles_dot_at_end) {
         { LexemeType::EndOfFile, "" }
     };
     EXPECT_EQ(lexer.Tokenize(source), expected);
+}
+
+TEST(Lexer, full_program) {
+    Lexer lexer;
+    std::string source =
+        R"(     program Example;
+        const
+        Pi : double = 3.1415926;
+    var
+        num1, num2: integer;
+    Res, d: double;
+    begin
+        num1 := 5;
+    Write("Input int: ");
+    Read(num2);
+    Write("Input double: ");
+    Read(d);
+    if (b mod 2 = 0) then
+        begin
+        Res := (num1 - num2 * 5 div 2) / (d * 2);
+    Write("Result = ", Res);
+    end
+    else
+        Write("Invalid input");
+    end.)";
+
+string expected = R"rr({Keyword : "program"}
+{IDENTIFIER : "example"}
+{Separator : ";"}
+{Keyword : "const"}
+{IDENTIFIER : "pi"}
+{Separator : ":"}
+{VarType : "double"}
+{Operator : "="}
+{Number : "3.1415926"}
+{Separator : ";"}
+{Keyword : "var"}
+{IDENTIFIER : "num1"}
+{Separator : ","}
+{IDENTIFIER : "num2"}
+{Separator : ":"}
+{VarType : "integer"}
+{Separator : ";"}
+{IDENTIFIER : "res"}
+{Separator : ","}
+{IDENTIFIER : "d"}
+{Separator : ":"}
+{VarType : "double"}
+{Separator : ";"}
+{Keyword : "begin"}
+{IDENTIFIER : "num1"}
+{Operator : ":="}
+{Number : "5"}
+{Separator : ";"}
+{Keyword : "write"}
+{Separator : "("}
+{StringLiteral : "Input int: "}
+{Separator : ")"}
+{Separator : ";"}
+{Keyword : "read"}
+{Separator : "("}
+{IDENTIFIER : "num2"}
+{Separator : ")"}
+{Separator : ";"}
+{Keyword : "write"}
+{Separator : "("}
+{StringLiteral : "Input double: "}
+{Separator : ")"}
+{Separator : ";"}
+{Keyword : "read"}
+{Separator : "("}
+{IDENTIFIER : "d"}
+{Separator : ")"}
+{Separator : ";"}
+{Keyword : "if"}
+{Separator : "("}
+{IDENTIFIER : "b"}
+{Operator : "mod"}
+{Number : "2"}
+{Operator : "="}
+{Number : "0"}
+{Separator : ")"}
+{Keyword : "then"}
+{Keyword : "begin"}
+{IDENTIFIER : "res"}
+{Operator : ":="}
+{Separator : "("}
+{IDENTIFIER : "num1"}
+{Operator : "-"}
+{IDENTIFIER : "num2"}
+{Operator : "*"}
+{Number : "5"}
+{Operator : "div"}
+{Number : "2"}
+{Separator : ")"}
+{Operator : "/"}
+{Separator : "("}
+{IDENTIFIER : "d"}
+{Operator : "*"}
+{Number : "2"}
+{Separator : ")"}
+{Separator : ";"}
+{Keyword : "write"}
+{Separator : "("}
+{StringLiteral : "Result = "}
+{Separator : ","}
+{IDENTIFIER : "res"}
+{Separator : ")"}
+{Separator : ";"}
+{Keyword : "end"}
+{Keyword : "else"}
+{Keyword : "write"}
+{Separator : "("}
+{StringLiteral : "Invalid input"}
+{Separator : ")"}
+{Separator : ";"}
+{Keyword : "end"}
+{Separator : "."}
+{EndOfFile : ""}
+)rr";
+    auto res = lexer.Tokenize(source);
+    cout << lexvectostr(res);
+
+    EXPECT_EQ(lexvectostr(res), expected);
 }
