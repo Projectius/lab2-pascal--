@@ -41,6 +41,7 @@ private:
     void parseSection(HLNode* parent, NodeType sectionType);
 
     void parseStatement(HLNode* parent);
+    HLNode* parseFunctionCall();
     HLNode* parseIf();
     void parseBlock(HLNode* parent);
 

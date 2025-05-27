@@ -9,7 +9,8 @@ enum NodeType {
     DECLARATION,    // Объявление (константы или переменной)
     IF,             // Условный оператор
     ELSE,           // Блок else
-    STATEMENT       // Исполняемый оператор
+    STATEMENT,       // Исполняемый оператор
+	CALL // вызов функции
 };
 
 struct HLNode {

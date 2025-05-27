@@ -61,18 +61,61 @@ void Parser::parseSection(HLNode* parent, NodeType sectionType) {
 }
 
 void Parser::parseStatement(HLNode* parent) {
-    auto stmt = collectUntil([&]() { return match(LexemeType::Separator) && currentLex().value == ";"; });
-    advance(); // Пропускаем точку с запятой
-
-    if (!stmt.empty()) {
-        auto node = createNode(NodeType::STATEMENT, stmt);
-        if (!parent->pdown) parent->pdown = node;
+    if (match(LexemeType::Keyword) && (currentLex().value == "write" || currentLex().value == "read")) {
+        auto callNode = parseFunctionCall();
+        if (!parent->pdown) parent->pdown = callNode;
         else {
             auto last = parent->pdown;
             while (last->pnext) last = last->pnext;
-            last->pnext = node;
+            last->pnext = callNode;
         }
     }
+    else { //оператор обычный
+        auto stmt = collectUntil([&]() { return match(LexemeType::Separator) && currentLex().value == ";"; });
+        advance(); // Пропускаем точку с запятой
+
+        if (!stmt.empty()) {
+            auto node = createNode(NodeType::STATEMENT, stmt);
+            if (!parent->pdown) parent->pdown = node;
+            else {
+                auto last = parent->pdown;
+                while (last->pnext) last = last->pnext;
+                last->pnext = node;
+            }
+        }
+    }
+}
+
+HLNode* Parser::parseFunctionCall() {
+    auto funcName = currentLex();
+    advance(); // Пропускаем имя функции
+
+    auto callNode = createNode(NodeType::CALL, { funcName });
+    advance(); // Пропускаем открывающую скобку
+
+    // Собираем аргументы пока не встретим закрывающую скобку
+    while (!match(LexemeType::Separator) || currentLex().value != ")") {
+        auto arg = collectUntil([&]() {
+            return match(LexemeType::Separator) && (currentLex().value == "," || currentLex().value == ")");
+            });
+
+        // Создаем узел аргумента
+        if (!arg.empty()) {
+            auto argNode = createNode(NodeType::STATEMENT, arg);
+            if (!callNode->pdown) callNode->pdown = argNode;
+            else {
+                auto lastArg = callNode->pdown;
+                while (lastArg->pnext) lastArg = lastArg->pnext;
+                lastArg->pnext = argNode;
+            }
+        }
+
+        if (match(LexemeType::Separator) && currentLex().value == ",") advance();
+    }
+
+    advance(); // Пропускаем закрывающую скобку
+    advance(); // Пропускаем точку с запятой
+    return callNode;
 }
 
 HLNode* Parser::parseIf() {
@@ -203,6 +246,7 @@ const char* NodeTypeToString(NodeType type) {
     case IF: return "IF";
     case ELSE: return "ELSE";
     case STATEMENT: return "STATEMENT";
+    case CALL: return "CALL";
     default: return "UNKNOWN";
     }
 }
