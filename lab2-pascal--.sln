@@ -12,6 +12,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lexer_project", "lexer_project\lexer_project.vcxproj", "{E124EECC-9154-4115-B510-FD9042721D79}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "parser_project", "parser_project\parser_project.vcxproj", "{733F5641-133A-4848-BD5B-CDDD4CEA4D08}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E124EECC-9154-4115-B510-FD9042721D79} = {E124EECC-9154-4115-B510-FD9042721D79}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "executor_project", "executor_project\executor_project.vcxproj", "{64CB2F2E-1441-422A-8828-140D95D77BB1}"
 EndProject
