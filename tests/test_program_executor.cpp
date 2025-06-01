@@ -979,8 +979,8 @@ TEST(ProgramExecutorTest, CanUseConstantInExpression) {
 }
 
 
-TEST(ParserTest, FullProgram) {
-    string source =
+TEST(ExecutorTest, FullProgram) {
+    string source = //Ќе работает в объ€влени€х присвоение с указанием типа, объ€вление нескольких переменных, похоже тип дабл вообще нельз€ оюъ€вить
         R"(     program Example;
         const
         Pi : double = 3.1415926;
