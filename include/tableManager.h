@@ -16,6 +16,7 @@ class THashTableChain
     {
         TKey key;
         TValue value;
+        bool isConstant; // флаг, является ли запись константной
     };
 
     vector<list<Node>> data{};
@@ -25,10 +26,34 @@ class THashTableChain
     {
         return hash<TKey>()(key) % bucketCount;
     }
+
+    // Вспомогательная функция для поиска узла по ключу (для внутреннего использования)
+    Node* FindNode(const TKey& key) 
+    {
+        size_t index = HashFunction(key);
+        for (auto& node : data[index]) 
+        {
+            if (node.key == key)
+                return &node;
+        }
+        return nullptr;
+    }
+
+    const Node* FindNode(const TKey& key) const 
+    {
+        size_t index = HashFunction(key);
+        for (const auto& node : data[index]) 
+        {
+            if (node.key == key)
+                return &node;
+        }
+        return nullptr;
+    }
 public:
     THashTableChain(size_t buckets = 10) : bucketCount(buckets)
     {
-        if (buckets == 0) throw std::invalid_argument("Number of buckets must be positive");
+        if (buckets == 0) 
+            throw std::invalid_argument("Number of buckets must be positive");
         data.resize(bucketCount);
     }
 
@@ -46,17 +71,18 @@ public:
         }
         return count;
     }
-    void Insert(const TKey& key, const TValue& value)
+
+    bool Insert(const TKey& key, const TValue& value, bool isConstant)
     {
         size_t index = HashFunction(key);
-        for (auto& node : data[index])
+        // Проверка на существование ключа
+        if (Node* node = FindNode(key)) 
         {
-            if (node.key == key)
-            {
-                return;
-            }
+            return false;
         }
-        data[index].push_back({ key, value });
+        // Ключ не найден, добавляем новую запись
+        data[index].push_back({ key, value, isConstant });
+        return true;
     }
 
     void Delete(const TKey& key)
@@ -70,24 +96,23 @@ public:
 
     TValue* Find(const TKey& key)
     {
-        size_t index = HashFunction(key);
-        for (auto& node : data[index])
-        {
-            if (node.key == key)
-                return &node.value; 
-        }
+        if (Node* node = FindNode(key))
+            return &node->value;
         return nullptr;
     }
 
     const TValue* Find(const TKey& key) const 
     {
-        size_t index = HashFunction(key);
-        for (const auto& node : data[index])
-        {
-            if (node.key == key)
-                return &node.value; 
-        }
+        if (const Node* node = FindNode(key))
+            return &node->value;
         return nullptr;
+    }
+
+    bool IsConstant(const TKey& key) const
+    {
+        if (const Node* node = FindNode(key))
+            return node->isConstant;
+        throw out_of_range("Key not found in hash table: " + key);
     }
 
     void Print() const
@@ -98,7 +123,7 @@ public:
             std::cout << "Bucket " << i << " : ";
             for (const auto& node : data[i])
             {
-                cout << "  Key: " << node.key << ", Value: " << node.value << endl;
+                cout << "  Key: " << node.key << ", Value: " << node.value << (node.isConstant ? " (const)" : " (var)") << endl;
             }
             cout << endl;
         }
@@ -106,24 +131,23 @@ public:
 
     TValue& operator[](const TKey& key)
     {
-        size_t index = HashFunction(key);
-        for (auto& node : data[index])
+        if (Node* node = FindNode(key)) 
         {
-            if (node.key == key)
-                return node.value;
+            if (node->isConstant) 
+            {
+                throw std::runtime_error("Attempt to modify constant: " + key); 
+            }
+            return node->value; 
         }
         throw out_of_range("Key not found in hash table: " + key);
     }
 
     const TValue& operator[](const TKey& key) const
     {
-        size_t index = HashFunction(key);
-        for (const auto& node : data[index])
+        if (const Node* node = FindNode(key))
         {
-            if (node.key == key)
-                return node.value;
+            return node->value; 
         }
-
         throw out_of_range("Key not found in hash table: " + key);
     }
 };
@@ -138,12 +162,17 @@ class TableManager
 public:
     TableManager() = default;
 
-    void addInt(const std::string& name, int val);
-    void addDouble(const std::string& name, double val);
+    bool addInt(const std::string& name, int val, bool isConstant);
+    bool addDouble(const std::string& name, double val, bool isConstant);
 
     int& getInt(string name);
     double& getDouble(string name);
 
+    const int& getIntConst(string name) const; // Доступ только для чтения
+    const double& getDoubleConst(string name) const; // Доступ только для чтения
+
     bool hasInt(const std::string& name) const { return inttable.Find(name) != nullptr; }
     bool hasDouble(const std::string& name) const { return doubletable.Find(name) != nullptr; }
+
+    bool isConstant(const std::string& name) const;
 };

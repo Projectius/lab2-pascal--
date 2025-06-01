@@ -1,7 +1,8 @@
 ﻿#pragma once
 #include"lexer.h"
 
-enum NodeType {
+enum NodeType 
+{
     PROGRAM,        // Корень программы
     CONST_SECTION,  // Секция констант
     VAR_SECTION,    // Секция переменных
@@ -13,7 +14,8 @@ enum NodeType {
 	CALL // вызов функции
 };
 
-struct HLNode {
+struct HLNode 
+{
     NodeType type;          // Òèï óçëà
     vector<Lexeme> expr;    // Ëåêñåìû óñëîâèÿ èëè îïåðàòîðà
     HLNode* pnext = nullptr;// Ñëåäóþùèé ýëåìåíò íà òîì æå óðîâíå

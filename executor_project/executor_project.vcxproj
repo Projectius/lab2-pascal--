@@ -130,7 +130,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\source\parser.cpp" />
+    <ClCompile Include="..\source\postfix.cpp" />
     <ClCompile Include="..\source\program_executor.cpp" />
+    <ClCompile Include="..\source\table_manager.cpp" />
     <ClCompile Include="..\tests\test_main.cpp" />
     <ClCompile Include="..\tests\test_program_executor.cpp" />
   </ItemGroup>
