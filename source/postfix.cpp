@@ -162,8 +162,16 @@ double PostfixExecutor::evaluateOperation(const string& op, double lhs, double r
         if (rhs == 0) throw runtime_error("Деление на ноль");
         return lhs / rhs;
     }
-    if (op == "div") return floor(lhs / rhs);
-    if (op == "mod") return fmod(lhs, rhs);
+    if (op == "div")
+    {
+        if (rhs == 0) throw runtime_error("Целочисленное деление на ноль");
+        return floor(lhs / rhs);
+    }
+    if (op == "mod")
+    {
+        if (rhs == 0) throw runtime_error("Вычисление остатка (mod) от деления на ноль");
+        return fmod(lhs, rhs);
+    }
 
     throw runtime_error("Неизвестный оператор: " + op);
 }

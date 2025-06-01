@@ -1,25 +1,25 @@
-#include "gtest.h"
+п»ї#include "gtest.h"
 #include "program_executor.h"
-#include "tableManager.h" // Для прямого доступа к TableManager в тестах (опционально)
-#include "lexer.h"        // Для LexemeType
+#include "tableManager.h" // Р”Р»СЏ РїСЂСЏРјРѕРіРѕ РґРѕСЃС‚СѓРїР° Рє TableManager РІ С‚РµСЃС‚Р°С… (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ)
+#include "lexer.h"        // Р”Р»СЏ LexemeType
 
-#include <sstream>      // Для stringstream (перенаправление cout/cin)
+#include <sstream>      // Р”Р»СЏ stringstream (РїРµСЂРµРЅР°РїСЂР°РІР»РµРЅРёРµ cout/cin)
 #include <string>
 #include <vector>
-#include <stdexcept>    // Для std::out_of_range
-#include <limits>       // Для numeric_limits
+#include <stdexcept>    // Р”Р»СЏ std::out_of_range
+#include <limits>       // Р”Р»СЏ numeric_limits
 
 using namespace std;
 
-// --- Вспомогательные функции для построения HLNode дерева для тестов ---
+// --- Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Рµ С„СѓРЅРєС†РёРё РґР»СЏ РїРѕСЃС‚СЂРѕРµРЅРёСЏ HLNode РґРµСЂРµРІР° РґР»СЏ С‚РµСЃС‚РѕРІ ---
 
-// Создает узел DECLARATION (для var или const)
+// РЎРѕР·РґР°РµС‚ СѓР·РµР» DECLARATION (РґР»СЏ var РёР»Рё const)
 HLNode* createDeclarationNode(const std::vector<Lexeme>& declarationLexemes) {
     return new HLNode(NodeType::DECLARATION, declarationLexemes);
 }
 
-// Создает секцию CONST_SECTION или VAR_SECTION
-// Принимает вектор узлов DECLARATION и связывает их через pnext
+// РЎРѕР·РґР°РµС‚ СЃРµРєС†РёСЋ CONST_SECTION РёР»Рё VAR_SECTION
+// РџСЂРёРЅРёРјР°РµС‚ РІРµРєС‚РѕСЂ СѓР·Р»РѕРІ DECLARATION Рё СЃРІСЏР·С‹РІР°РµС‚ РёС… С‡РµСЂРµР· pnext
 HLNode* createSectionNode(NodeType sectionType, const std::vector<HLNode*>& declarations) {
     if (sectionType != NodeType::CONST_SECTION && sectionType != NodeType::VAR_SECTION) {
         throw std::invalid_argument("sectionType must be CONST_SECTION or VAR_SECTION");
@@ -28,12 +28,12 @@ HLNode* createSectionNode(NodeType sectionType, const std::vector<HLNode*>& decl
     HLNode* current = nullptr;
     for (HLNode* decl : declarations)
     {
-        if (!section->pdown) // Первый узел декларации становится pdown секции
+        if (!section->pdown) // РџРµСЂРІС‹Р№ СѓР·РµР» РґРµРєР»Р°СЂР°С†РёРё СЃС‚Р°РЅРѕРІРёС‚СЃСЏ pdown СЃРµРєС†РёРё
         {
             section->pdown = decl;
             current = decl;
         }
-        else // Остальные добавляются в цепочку pnext
+        else // РћСЃС‚Р°Р»СЊРЅС‹Рµ РґРѕР±Р°РІР»СЏСЋС‚СЃСЏ РІ С†РµРїРѕС‡РєСѓ pnext
         {
             current->pnext = decl;
             current = decl;
@@ -42,13 +42,13 @@ HLNode* createSectionNode(NodeType sectionType, const std::vector<HLNode*>& decl
     return section;
 }
 
-// Создает узел STATEMENT (для присваивания или выражения)
+// РЎРѕР·РґР°РµС‚ СѓР·РµР» STATEMENT (РґР»СЏ РїСЂРёСЃРІР°РёРІР°РЅРёСЏ РёР»Рё РІС‹СЂР°Р¶РµРЅРёСЏ)
 HLNode* createStatementNode(const std::vector<Lexeme>& statementLexemes) {
     return new HLNode(NodeType::STATEMENT, statementLexemes);
 }
 
-// Создает узел CALL (для read/write)
-// Принимает вектор узлов STATEMENT (аргументов) и связывает их через pnext под узлом CALL
+// РЎРѕР·РґР°РµС‚ СѓР·РµР» CALL (РґР»СЏ read/write)
+// РџСЂРёРЅРёРјР°РµС‚ РІРµРєС‚РѕСЂ СѓР·Р»РѕРІ STATEMENT (Р°СЂРіСѓРјРµРЅС‚РѕРІ) Рё СЃРІСЏР·С‹РІР°РµС‚ РёС… С‡РµСЂРµР· pnext РїРѕРґ СѓР·Р»РѕРј CALL
 HLNode* createCallNode(const Lexeme& functionNameLexeme, const std::vector<HLNode*>& arguments) {
     if (functionNameLexeme.type != LexemeType::Keyword || (functionNameLexeme.value != "read" && functionNameLexeme.value != "write")) {
         throw std::invalid_argument("functionNameLexeme must be read or write keyword");
@@ -56,18 +56,18 @@ HLNode* createCallNode(const Lexeme& functionNameLexeme, const std::vector<HLNod
     HLNode* callNode = new HLNode(NodeType::CALL, { functionNameLexeme });
     HLNode* current = nullptr;
     for (HLNode* arg : arguments) {
-        // Аргументы в Parser'е парсятся как STATEMENT узлы
+        // РђСЂРіСѓРјРµРЅС‚С‹ РІ Parser'Рµ РїР°СЂСЃСЏС‚СЃСЏ РєР°Рє STATEMENT СѓР·Р»С‹
         if (arg->type != NodeType::STATEMENT) {
-            // Это не ошибка, если парсер делает по-другому. Просто пример
+            // Р­С‚Рѕ РЅРµ РѕС€РёР±РєР°, РµСЃР»Рё РїР°СЂСЃРµСЂ РґРµР»Р°РµС‚ РїРѕ-РґСЂСѓРіРѕРјСѓ. РџСЂРѕСЃС‚Рѕ РїСЂРёРјРµСЂ
             // if (arg->type != NodeType::STATEMENT) {
             //     throw std::invalid_argument("Call arguments must be STATEMENT nodes according to this helper logic");
             // }
         }
-        if (!callNode->pdown) { // Первый аргумент становится pdown узла CALL
+        if (!callNode->pdown) { // РџРµСЂРІС‹Р№ Р°СЂРіСѓРјРµРЅС‚ СЃС‚Р°РЅРѕРІРёС‚СЃСЏ pdown СѓР·Р»Р° CALL
             callNode->pdown = arg;
             current = arg;
         }
-        else // Остальные добавляются в цепочку pnext
+        else // РћСЃС‚Р°Р»СЊРЅС‹Рµ РґРѕР±Р°РІР»СЏСЋС‚СЃСЏ РІ С†РµРїРѕС‡РєСѓ pnext
         {
             current->pnext = arg;
             current = arg;
@@ -76,34 +76,34 @@ HLNode* createCallNode(const Lexeme& functionNameLexeme, const std::vector<HLNod
     return callNode;
 }
 
-// Создает узел IF
-// Принимает условие (вектор лексем) и первый узел блока THEN и первый узел блока ELSE (если есть)
+// РЎРѕР·РґР°РµС‚ СѓР·РµР» IF
+// РџСЂРёРЅРёРјР°РµС‚ СѓСЃР»РѕРІРёРµ (РІРµРєС‚РѕСЂ Р»РµРєСЃРµРј) Рё РїРµСЂРІС‹Р№ СѓР·РµР» Р±Р»РѕРєР° THEN Рё РїРµСЂРІС‹Р№ СѓР·РµР» Р±Р»РѕРєР° ELSE (РµСЃР»Рё РµСЃС‚СЊ)
 HLNode* createIfNode(const std::vector<Lexeme>& conditionLexemes, HLNode* thenFirstStmt, HLNode* elseNode = nullptr) {
     HLNode* ifNode = new HLNode(NodeType::IF, conditionLexemes);
-    // Ветка then - это последовательность инструкций, начинающаяся с thenFirstStmt
-    // Эта последовательность становится дочерней к узлу IF
+    // Р’РµС‚РєР° then - СЌС‚Рѕ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РёРЅСЃС‚СЂСѓРєС†РёР№, РЅР°С‡РёРЅР°СЋС‰Р°СЏСЃСЏ СЃ thenFirstStmt
+    // Р­С‚Р° РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ СЃС‚Р°РЅРѕРІРёС‚СЃСЏ РґРѕС‡РµСЂРЅРµР№ Рє СѓР·Р»Сѓ IF
     ifNode->pdown = thenFirstStmt;
 
-    // Ветка else - это отдельный узел ELSE, связанный по pnext с IF
+    // Р’РµС‚РєР° else - СЌС‚Рѕ РѕС‚РґРµР»СЊРЅС‹Р№ СѓР·РµР» ELSE, СЃРІСЏР·Р°РЅРЅС‹Р№ РїРѕ pnext СЃ IF
     if (elseNode) {
         if (elseNode->type != NodeType::ELSE) throw std::invalid_argument("elseNode must be an ELSE node");
-        ifNode->pnext = elseNode; // ELSE связан через pnext
+        ifNode->pnext = elseNode; // ELSE СЃРІСЏР·Р°РЅ С‡РµСЂРµР· pnext
     }
     return ifNode;
 }
 
-// Создает узел ELSE
-// Принимает первый узел блока ELSE (последовательности инструкций)
+// РЎРѕР·РґР°РµС‚ СѓР·РµР» ELSE
+// РџСЂРёРЅРёРјР°РµС‚ РїРµСЂРІС‹Р№ СѓР·РµР» Р±Р»РѕРєР° ELSE (РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё РёРЅСЃС‚СЂСѓРєС†РёР№)
 HLNode* createElseNode(HLNode* elseFirstStmt) {
     HLNode* elseNode = new HLNode(NodeType::ELSE, {});
-    // Блок ELSE - это последовательность инструкций, начинающаяся с elseFirstStmt
-    // Эта последовательность становится дочерней к узлу ELSE
+    // Р‘Р»РѕРє ELSE - СЌС‚Рѕ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РёРЅСЃС‚СЂСѓРєС†РёР№, РЅР°С‡РёРЅР°СЋС‰Р°СЏСЃСЏ СЃ elseFirstStmt
+    // Р­С‚Р° РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ СЃС‚Р°РЅРѕРІРёС‚СЃСЏ РґРѕС‡РµСЂРЅРµР№ Рє СѓР·Р»Сѓ ELSE
     elseNode->pdown = elseFirstStmt;
     return elseNode;
 }
 
 
-// Создает последовательность узлов (например, инструкций внутри блока)
+// РЎРѕР·РґР°РµС‚ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ СѓР·Р»РѕРІ (РЅР°РїСЂРёРјРµСЂ, РёРЅСЃС‚СЂСѓРєС†РёР№ РІРЅСѓС‚СЂРё Р±Р»РѕРєР°)
 HLNode* createStatementSequence(const std::vector<HLNode*>& statements) {
     HLNode* firstStmt = nullptr;
     HLNode* current = nullptr;
@@ -117,65 +117,65 @@ HLNode* createStatementSequence(const std::vector<HLNode*>& statements) {
             current = stmt;
         }
     }
-    // Возвращаем первый узел в последовательности
+    // Р’РѕР·РІСЂР°С‰Р°РµРј РїРµСЂРІС‹Р№ СѓР·РµР» РІ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё
     return firstStmt;
 }
 
-// Создает узел MAIN_BLOCK и добавляет переданные инструкции как его дочерние узлы
+// РЎРѕР·РґР°РµС‚ СѓР·РµР» MAIN_BLOCK Рё РґРѕР±Р°РІР»СЏРµС‚ РїРµСЂРµРґР°РЅРЅС‹Рµ РёРЅСЃС‚СЂСѓРєС†РёРё РєР°Рє РµРіРѕ РґРѕС‡РµСЂРЅРёРµ СѓР·Р»С‹
 HLNode* createMainBlockNode(const std::vector<HLNode*>& statements) {
-    // Создаем узел типа MAIN_BLOCK
+    // РЎРѕР·РґР°РµРј СѓР·РµР» С‚РёРїР° MAIN_BLOCK
     HLNode* mainBlock = new HLNode(NodeType::MAIN_BLOCK, {});
-    // Последовательность инструкций становится дочерней к MAIN_BLOCK
+    // РџРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РёРЅСЃС‚СЂСѓРєС†РёР№ СЃС‚Р°РЅРѕРІРёС‚СЃСЏ РґРѕС‡РµСЂРЅРµР№ Рє MAIN_BLOCK
     mainBlock->pdown = createStatementSequence(statements);
     return mainBlock;
 }
 
 
-// Создает корневой узел PROGRAM
-// Принимает первый узел последовательности секций и основного блока
+// РЎРѕР·РґР°РµС‚ РєРѕСЂРЅРµРІРѕР№ СѓР·РµР» PROGRAM
+// РџСЂРёРЅРёРјР°РµС‚ РїРµСЂРІС‹Р№ СѓР·РµР» РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё СЃРµРєС†РёР№ Рё РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
 HLNode* createProgramNode(HLNode* firstSectionOrMainBlock) {
     HLNode* program = new HLNode(NodeType::PROGRAM, {});
-    // Первая секция или основной блок становится дочерним к PROGRAM
+    // РџРµСЂРІР°СЏ СЃРµРєС†РёСЏ РёР»Рё РѕСЃРЅРѕРІРЅРѕР№ Р±Р»РѕРє СЃС‚Р°РЅРѕРІРёС‚СЃСЏ РґРѕС‡РµСЂРЅРёРј Рє PROGRAM
     program->pdown = firstSectionOrMainBlock;
     return program;
 }
 
-// --- Вспомогательная функция для очистки дерева ---
+// --- Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅР°СЏ С„СѓРЅРєС†РёСЏ РґР»СЏ РѕС‡РёСЃС‚РєРё РґРµСЂРµРІР° ---
 void deleteHLNode(HLNode* node) {
     if (!node) return;
-    // Сохраняем указатели на дочерний и следующий перед удалением
+    // РЎРѕС…СЂР°РЅСЏРµРј СѓРєР°Р·Р°С‚РµР»Рё РЅР° РґРѕС‡РµСЂРЅРёР№ Рё СЃР»РµРґСѓСЋС‰РёР№ РїРµСЂРµРґ СѓРґР°Р»РµРЅРёРµРј
     HLNode* pdown_child = node->pdown;
     HLNode* pnext_sibling = node->pnext;
 
-    // Очищаем указатели в текущем узле, чтобы избежать повторного удаления
+    // РћС‡РёС‰Р°РµРј СѓРєР°Р·Р°С‚РµР»Рё РІ С‚РµРєСѓС‰РµРј СѓР·Р»Рµ, С‡С‚РѕР±С‹ РёР·Р±РµР¶Р°С‚СЊ РїРѕРІС‚РѕСЂРЅРѕРіРѕ СѓРґР°Р»РµРЅРёСЏ
     node->pdown = nullptr;
     node->pnext = nullptr;
 
-    // Рекурсивно удаляем
+    // Р РµРєСѓСЂСЃРёРІРЅРѕ СѓРґР°Р»СЏРµРј
     deleteHLNode(pdown_child);
     deleteHLNode(pnext_sibling);
 
-    // Удаляем сам узел
+    // РЈРґР°Р»СЏРµРј СЃР°Рј СѓР·РµР»
     delete node;
 }
 
 
-// --- Google Tests для ProgramExecutor ---
+// --- Google Tests РґР»СЏ ProgramExecutor ---
 
-// Тестовый набор для ProgramExecutor
+// РўРµСЃС‚РѕРІС‹Р№ РЅР°Р±РѕСЂ РґР»СЏ ProgramExecutor
 TEST(ProgramExecutorTest, CanCreateExecutor) {
     ProgramExecutor executor;
-    // Просто проверяем, что объект создается без ошибок
+    // РџСЂРѕСЃС‚Рѕ РїСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ РѕР±СЉРµРєС‚ СЃРѕР·РґР°РµС‚СЃСЏ Р±РµР· РѕС€РёР±РѕРє
     SUCCEED();
 }
 
 
-// Изменен тест: Теперь ProgramExecutor::Execute ожидает MAIN_BLOCK и бросает исключение, если его нет.
+// РР·РјРµРЅРµРЅ С‚РµСЃС‚: РўРµРїРµСЂСЊ ProgramExecutor::Execute РѕР¶РёРґР°РµС‚ MAIN_BLOCK Рё Р±СЂРѕСЃР°РµС‚ РёСЃРєР»СЋС‡РµРЅРёРµ, РµСЃР»Рё РµРіРѕ РЅРµС‚.
 TEST(ProgramExecutorTest, ThrowsOnEmptyProgramWithoutMainBlock) {
     ProgramExecutor executor;
-    HLNode* program = createProgramNode(nullptr); // Пустой PROGRAM узел (pdown == nullptr)
-    // Ожидаем ошибку, т.к. нет MAIN_BLOCK
-    EXPECT_THROW(executor.Execute(program), std::runtime_error); // Сообщение должно содержать "MAIN_BLOCK is missing"
+    HLNode* program = createProgramNode(nullptr); // РџСѓСЃС‚РѕР№ PROGRAM СѓР·РµР» (pdown == nullptr)
+    // РћР¶РёРґР°РµРј РѕС€РёР±РєСѓ, С‚.Рє. РЅРµС‚ MAIN_BLOCK
+    EXPECT_THROW(executor.Execute(program), std::runtime_error); // РЎРѕРѕР±С‰РµРЅРёРµ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ "MAIN_BLOCK is missing"
     deleteHLNode(program);
 }
 
@@ -191,9 +191,9 @@ TEST(ProgramExecutorTest, CanDeclareIntVar) {
         });
     auto varSection = createSectionNode(NodeType::VAR_SECTION, { varDecl });
 
-    // Добавляем пустой MAIN_BLOCK для валидности структуры программы
+    // Р”РѕР±Р°РІР»СЏРµРј РїСѓСЃС‚РѕР№ MAIN_BLOCK РґР»СЏ РІР°Р»РёРґРЅРѕСЃС‚Рё СЃС‚СЂСѓРєС‚СѓСЂС‹ РїСЂРѕРіСЂР°РјРјС‹
     auto mainBlock = createMainBlockNode({});
-    varSection->pnext = mainBlock; // MAIN_BLOCK после VAR_SECTION
+    varSection->pnext = mainBlock; // MAIN_BLOCK РїРѕСЃР»Рµ VAR_SECTION
 
     auto program = createProgramNode(varSection);
 
@@ -213,7 +213,7 @@ TEST(ProgramExecutorTest, CanDeclareDoubleVar) {
         });
     auto varSection = createSectionNode(NodeType::VAR_SECTION, { varDecl });
 
-    // Добавляем пустой MAIN_BLOCK
+    // Р”РѕР±Р°РІР»СЏРµРј РїСѓСЃС‚РѕР№ MAIN_BLOCK
     auto mainBlock = createMainBlockNode({});
     varSection->pnext = mainBlock;
 
@@ -226,14 +226,14 @@ TEST(ProgramExecutorTest, CanDeclareDoubleVar) {
 
 TEST(ProgramExecutorTest, CanDeclareVarWithoutType) {
     ProgramExecutor executor;
-    // var z ; (предполагается integer по умолчанию)
+    // var z ; (РїСЂРµРґРїРѕР»Р°РіР°РµС‚СЃСЏ integer РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ)
     auto varDecl = createDeclarationNode({
        {LexemeType::Identifier, "z"},
        {LexemeType::Separator, ";"}
         });
     auto varSection = createSectionNode(NodeType::VAR_SECTION, { varDecl });
 
-    // Добавляем пустой MAIN_BLOCK
+    // Р”РѕР±Р°РІР»СЏРµРј РїСѓСЃС‚РѕР№ MAIN_BLOCK
     auto mainBlock = createMainBlockNode({});
     varSection->pnext = mainBlock;
 
@@ -256,9 +256,9 @@ TEST(ProgramExecutorTest, CanDeclareConstWithNumber) {
         });
     auto constSection = createSectionNode(NodeType::CONST_SECTION, { constDecl });
 
-    // Добавляем пустой MAIN_BLOCK
+    // Р”РѕР±Р°РІР»СЏРµРј РїСѓСЃС‚РѕР№ MAIN_BLOCK
     auto mainBlock = createMainBlockNode({});
-    constSection->pnext = mainBlock; // MAIN_BLOCK после CONST_SECTION
+    constSection->pnext = mainBlock; // MAIN_BLOCK РїРѕСЃР»Рµ CONST_SECTION
 
     auto program = createProgramNode(constSection);
 
@@ -280,7 +280,7 @@ TEST(ProgramExecutorTest, CanDeclareConstWithExpression) {
         });
     auto constSection = createSectionNode(NodeType::CONST_SECTION, { piDecl, twoPiDecl });
 
-    // Добавляем пустой MAIN_BLOCK
+    // Р”РѕР±Р°РІР»СЏРµРј РїСѓСЃС‚РѕР№ MAIN_BLOCK
     auto mainBlock = createMainBlockNode({});
     constSection->pnext = mainBlock;
 
@@ -297,28 +297,28 @@ TEST(ProgramExecutorTest, CannotRedeclareVariable) {
     // var x : integer ; var x : double ;
     auto decl1 = createDeclarationNode({ {LexemeType::Identifier, "x"}, {LexemeType::Separator, ":"}, {LexemeType::VarType, "integer"}, {LexemeType::Separator, ";"} });
     auto decl2 = createDeclarationNode({ {LexemeType::Identifier, "x"}, {LexemeType::Separator, ":"}, {LexemeType::VarType, "double"}, {LexemeType::Separator, ";"} });
-    // Parser::parseSection собирает все объявления до var/begin/end в одну секцию
-    // и ProgramExecutor::handleDeclaration ожидает обработать все в одном узле DECLARATION (если они разделены запятой)
-    // Но текущие тесты строят ОТДЕЛЬНЫЕ узлы DECLARATION для каждого объявления.
-    // ProgramExecutor::handleDeclaration в новой версии может обработать одно имя на узел.
-    // Проверим, как Parser создает дерево для var a, b: type;
-    // Если Parser создает один узел DECLARATION для "a, b: integer;", то expr будет {a, ,, b, :, integer, ;}.
-    // handleDeclaration нужно доработать для этого.
-    // Если Parser создает два узла DECLARATION для "a: integer;", "b: integer;", то текущие тесты
-    // не совсем правильно имитируют Parser.
+    // Parser::parseSection СЃРѕР±РёСЂР°РµС‚ РІСЃРµ РѕР±СЉСЏРІР»РµРЅРёСЏ РґРѕ var/begin/end РІ РѕРґРЅСѓ СЃРµРєС†РёСЋ
+    // Рё ProgramExecutor::handleDeclaration РѕР¶РёРґР°РµС‚ РѕР±СЂР°Р±РѕС‚Р°С‚СЊ РІСЃРµ РІ РѕРґРЅРѕРј СѓР·Р»Рµ DECLARATION (РµСЃР»Рё РѕРЅРё СЂР°Р·РґРµР»РµРЅС‹ Р·Р°РїСЏС‚РѕР№)
+    // РќРѕ С‚РµРєСѓС‰РёРµ С‚РµСЃС‚С‹ СЃС‚СЂРѕСЏС‚ РћРўР”Р•Р›Р¬РќР«Р• СѓР·Р»С‹ DECLARATION РґР»СЏ РєР°Р¶РґРѕРіРѕ РѕР±СЉСЏРІР»РµРЅРёСЏ.
+    // ProgramExecutor::handleDeclaration РІ РЅРѕРІРѕР№ РІРµСЂСЃРёРё РјРѕР¶РµС‚ РѕР±СЂР°Р±РѕС‚Р°С‚СЊ РѕРґРЅРѕ РёРјСЏ РЅР° СѓР·РµР».
+    // РџСЂРѕРІРµСЂРёРј, РєР°Рє Parser СЃРѕР·РґР°РµС‚ РґРµСЂРµРІРѕ РґР»СЏ var a, b: type;
+    // Р•СЃР»Рё Parser СЃРѕР·РґР°РµС‚ РѕРґРёРЅ СѓР·РµР» DECLARATION РґР»СЏ "a, b: integer;", С‚Рѕ expr Р±СѓРґРµС‚ {a, ,, b, :, integer, ;}.
+    // handleDeclaration РЅСѓР¶РЅРѕ РґРѕСЂР°Р±РѕС‚Р°С‚СЊ РґР»СЏ СЌС‚РѕРіРѕ.
+    // Р•СЃР»Рё Parser СЃРѕР·РґР°РµС‚ РґРІР° СѓР·Р»Р° DECLARATION РґР»СЏ "a: integer;", "b: integer;", С‚Рѕ С‚РµРєСѓС‰РёРµ С‚РµСЃС‚С‹
+    // РЅРµ СЃРѕРІСЃРµРј РїСЂР°РІРёР»СЊРЅРѕ РёРјРёС‚РёСЂСѓСЋС‚ Parser.
 
-    // Для этого теста "CannotRedeclareVariable" нужно имитировать ситуацию,
-    // когда два разных узла DECLARATION в одной секции объявляют одно и то же имя.
+    // Р”Р»СЏ СЌС‚РѕРіРѕ С‚РµСЃС‚Р° "CannotRedeclareVariable" РЅСѓР¶РЅРѕ РёРјРёС‚РёСЂРѕРІР°С‚СЊ СЃРёС‚СѓР°С†РёСЋ,
+    // РєРѕРіРґР° РґРІР° СЂР°Р·РЅС‹С… СѓР·Р»Р° DECLARATION РІ РѕРґРЅРѕР№ СЃРµРєС†РёРё РѕР±СЉСЏРІР»СЏСЋС‚ РѕРґРЅРѕ Рё С‚Рѕ Р¶Рµ РёРјСЏ.
     auto varSection = createSectionNode(NodeType::VAR_SECTION, { decl1, decl2 });
 
-    // Добавляем пустой MAIN_BLOCK
+    // Р”РѕР±Р°РІР»СЏРµРј РїСѓСЃС‚РѕР№ MAIN_BLOCK
     auto mainBlock = createMainBlockNode({});
     varSection->pnext = mainBlock;
 
     auto program = createProgramNode(varSection);
 
-    // Ожидаем ошибку повторного объявления при обработке второго узла DECLARATION
-    EXPECT_THROW(executor.Execute(program), std::runtime_error); // Сообщение должно содержать "already declared"
+    // РћР¶РёРґР°РµРј РѕС€РёР±РєСѓ РїРѕРІС‚РѕСЂРЅРѕРіРѕ РѕР±СЉСЏРІР»РµРЅРёСЏ РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ РІС‚РѕСЂРѕРіРѕ СѓР·Р»Р° DECLARATION
+    EXPECT_THROW(executor.Execute(program), std::runtime_error); // РЎРѕРѕР±С‰РµРЅРёРµ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ "already declared"
 
     deleteHLNode(program);
 }
@@ -331,16 +331,16 @@ TEST(ProgramExecutorTest, CannotRedeclareConstAndVar) {
 
     auto constSection = createSectionNode(NodeType::CONST_SECTION, { constDecl });
     auto varSection = createSectionNode(NodeType::VAR_SECTION, { varDecl });
-    constSection->pnext = varSection; // VAR_SECTION после CONST_SECTION
+    constSection->pnext = varSection; // VAR_SECTION РїРѕСЃР»Рµ CONST_SECTION
 
-    // Добавляем пустой MAIN_BLOCK
+    // Р”РѕР±Р°РІР»СЏРµРј РїСѓСЃС‚РѕР№ MAIN_BLOCK
     auto mainBlock = createMainBlockNode({});
-    varSection->pnext = mainBlock; // MAIN_BLOCK после VAR_SECTION
+    varSection->pnext = mainBlock; // MAIN_BLOCK РїРѕСЃР»Рµ VAR_SECTION
 
     auto program = createProgramNode(constSection);
 
-    // Ожидаем ошибку повторного объявления при обработке объявления в VAR_SECTION
-    EXPECT_THROW(executor.Execute(program), std::runtime_error); // Сообщение должно содержать "already declared"
+    // РћР¶РёРґР°РµРј РѕС€РёР±РєСѓ РїРѕРІС‚РѕСЂРЅРѕРіРѕ РѕР±СЉСЏРІР»РµРЅРёСЏ РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ РѕР±СЉСЏРІР»РµРЅРёСЏ РІ VAR_SECTION
+    EXPECT_THROW(executor.Execute(program), std::runtime_error); // РЎРѕРѕР±С‰РµРЅРёРµ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ "already declared"
 
     deleteHLNode(program);
 }
@@ -357,17 +357,17 @@ TEST(ProgramExecutorTest, CanAssignInteger) {
         {LexemeType::Number, "10"},
         {LexemeType::Separator, ";"}
         });
-    auto mainBlockContent = createStatementSequence({ assign }); // Последовательность инструкций в блоке
+    auto mainBlockContent = createStatementSequence({ assign }); // РџРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РёРЅСЃС‚СЂСѓРєС†РёР№ РІ Р±Р»РѕРєРµ
 
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
-    auto mainBlock = createMainBlockNode({ mainBlockContent }); // MAIN_BLOCK контейнер
-    varSection->pnext = mainBlock; // MAIN_BLOCK после VAR_SECTION
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
+    auto mainBlock = createMainBlockNode({ mainBlockContent }); // MAIN_BLOCK РєРѕРЅС‚РµР№РЅРµСЂ
+    varSection->pnext = mainBlock; // MAIN_BLOCK РїРѕСЃР»Рµ VAR_SECTION
 
     auto program = createProgramNode(varSection);
 
     ASSERT_NO_THROW(executor.Execute(program));
 
-    // TODO: Проверить значение x после выполнения.
+    // TODO: РџСЂРѕРІРµСЂРёС‚СЊ Р·РЅР°С‡РµРЅРёРµ x РїРѕСЃР»Рµ РІС‹РїРѕР»РЅРµРЅРёСЏ.
     // EXPECT_EQ(executor.getInt("x"), 10);
 
     deleteHLNode(program);
@@ -387,7 +387,7 @@ TEST(ProgramExecutorTest, CanAssignDouble) {
         });
     auto mainBlockContent = createStatementSequence({ assign });
 
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
 
@@ -395,7 +395,7 @@ TEST(ProgramExecutorTest, CanAssignDouble) {
 
     ASSERT_NO_THROW(executor.Execute(program));
 
-    // TODO: Проверить значение y после выполнения.
+    // TODO: РџСЂРѕРІРµСЂРёС‚СЊ Р·РЅР°С‡РµРЅРёРµ y РїРѕСЃР»Рµ РІС‹РїРѕР»РЅРµРЅРёСЏ.
     // EXPECT_DOUBLE_EQ(executor.getDouble("y"), 3.14);
 
     deleteHLNode(program);
@@ -421,16 +421,16 @@ TEST(ProgramExecutorTest, CanAssignExpression) {
         });
     auto mainBlockContent = createStatementSequence({ assignA, assignB, assignC });
 
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
 
     auto program = createProgramNode(varSection);
 
     ASSERT_NO_THROW(executor.Execute(program));
-    // Ожидаемый результат: c := (10 + 20) * 2 / 5 = 30 * 2 / 5 = 60 / 5 = 12
+    // РћР¶РёРґР°РµРјС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚: c := (10 + 20) * 2 / 5 = 30 * 2 / 5 = 60 / 5 = 12
 
-    // TODO: Проверить значение c.
+    // TODO: РџСЂРѕРІРµСЂРёС‚СЊ Р·РЅР°С‡РµРЅРёРµ c.
     // EXPECT_EQ(executor.getInt("c"), 12);
     // EXPECT_DOUBLE_EQ(executor.getDouble("c"), 12.0);
 
@@ -440,7 +440,7 @@ TEST(ProgramExecutorTest, CanAssignExpression) {
 
 TEST(ProgramExecutorTest, CannotAssignToUndeclaredVariable) {
     ProgramExecutor executor;
-    // begin x := 10 ; end. (x не объявлена)
+    // begin x := 10 ; end. (x РЅРµ РѕР±СЉСЏРІР»РµРЅР°)
     auto assign = createStatementNode({
         {LexemeType::Identifier, "x"},
         {LexemeType::Operator, ":="},
@@ -449,17 +449,17 @@ TEST(ProgramExecutorTest, CannotAssignToUndeclaredVariable) {
         });
     auto mainBlockContent = createStatementSequence({ assign });
 
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
-    // Здесь нет var секции, mainBlock - первый дочерний к PROGRAM
+    // Р—РґРµСЃСЊ РЅРµС‚ var СЃРµРєС†РёРё, mainBlock - РїРµСЂРІС‹Р№ РґРѕС‡РµСЂРЅРёР№ Рє PROGRAM
     auto program = createProgramNode(mainBlock);
 
-    EXPECT_THROW(executor.Execute(program), std::runtime_error); // Сообщение должно содержать "undeclared variable"
+    EXPECT_THROW(executor.Execute(program), std::runtime_error); // РЎРѕРѕР±С‰РµРЅРёРµ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ "undeclared variable"
 
     deleteHLNode(program);
 }
 
-// TODO: Тесты для IF-ELSE (true/false условие, выполнение THEN, выполнение ELSE)
+// TODO: РўРµСЃС‚С‹ РґР»СЏ IF-ELSE (true/false СѓСЃР»РѕРІРёРµ, РІС‹РїРѕР»РЅРµРЅРёРµ THEN, РІС‹РїРѕР»РЅРµРЅРёРµ ELSE)
 TEST(ProgramExecutorTest, IfConditionTrue) {
     ProgramExecutor executor;
     // var x; begin x := 0; if 1 then x := 1; end.
@@ -469,23 +469,23 @@ TEST(ProgramExecutorTest, IfConditionTrue) {
     auto assignInitial = createStatementNode({ {LexemeType::Identifier, "x"}, {LexemeType::Operator, ":="}, {LexemeType::Number, "0"}, {LexemeType::Separator, ";"} });
     auto assignThen = createStatementNode({ {LexemeType::Identifier, "x"}, {LexemeType::Operator, ":="}, {LexemeType::Number, "1"}, {LexemeType::Separator, ";"} });
 
-    // Ветка then - это последовательность инструкций
+    // Р’РµС‚РєР° then - СЌС‚Рѕ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РёРЅСЃС‚СЂСѓРєС†РёР№
     auto thenBlockContent = createStatementSequence({ assignThen });
-    // *** ИСПРАВЛЕНО ***: createIfNode ожидает последовательность инструкций, а не блок-контейнер
-    // auto thenBlockContainer = createSectionNode(NodeType::MAIN_BLOCK, { thenBlockContent }); // БЫЛО НЕПРАВИЛЬНО
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: createIfNode РѕР¶РёРґР°РµС‚ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РёРЅСЃС‚СЂСѓРєС†РёР№, Р° РЅРµ Р±Р»РѕРє-РєРѕРЅС‚РµР№РЅРµСЂ
+    // auto thenBlockContainer = createSectionNode(NodeType::MAIN_BLOCK, { thenBlockContent }); // Р‘Р«Р›Рћ РќР•РџР РђР’РР›Р¬РќРћ
 
-    // *** ИСПРАВЛЕНО ***: createIfNode теперь принимает первую инструкцию ветки THEN
-    auto ifNode = createIfNode({ {LexemeType::Number, "1"} }, thenBlockContent); // Условие 1 (true), thenBlockContent - первый узел then ветки
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: createIfNode С‚РµРїРµСЂСЊ РїСЂРёРЅРёРјР°РµС‚ РїРµСЂРІСѓСЋ РёРЅСЃС‚СЂСѓРєС†РёСЋ РІРµС‚РєРё THEN
+    auto ifNode = createIfNode({ {LexemeType::Number, "1"} }, thenBlockContent); // РЈСЃР»РѕРІРёРµ 1 (true), thenBlockContent - РїРµСЂРІС‹Р№ СѓР·РµР» then РІРµС‚РєРё
 
     auto mainBlockContent = createStatementSequence({ assignInitial, ifNode });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
 
     auto program = createProgramNode(varSection);
 
     ASSERT_NO_THROW(executor.Execute(program));
-    // Ожидаем, что x станет 1
+    // РћР¶РёРґР°РµРј, С‡С‚Рѕ x СЃС‚Р°РЅРµС‚ 1
 
     deleteHLNode(program);
 }
@@ -500,20 +500,20 @@ TEST(ProgramExecutorTest, IfConditionFalse) {
     auto assignThen = createStatementNode({ {LexemeType::Identifier, "x"}, {LexemeType::Operator, ":="}, {LexemeType::Number, "1"}, {LexemeType::Separator, ";"} });
 
     auto thenBlockContent = createStatementSequence({ assignThen });
-    // auto thenBlockContainer = createSectionNode(NodeType::MAIN_BLOCK, { thenBlockContent }); // БЫЛО НЕПРАВИЛЬНО
+    // auto thenBlockContainer = createSectionNode(NodeType::MAIN_BLOCK, { thenBlockContent }); // Р‘Р«Р›Рћ РќР•РџР РђР’РР›Р¬РќРћ
 
-    // *** ИСПРАВЛЕНО ***: createIfNode теперь принимает первую инструкцию ветки THEN
-    auto ifNode = createIfNode({ {LexemeType::Number, "0"} }, thenBlockContent); // Условие 0 (false)
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: createIfNode С‚РµРїРµСЂСЊ РїСЂРёРЅРёРјР°РµС‚ РїРµСЂРІСѓСЋ РёРЅСЃС‚СЂСѓРєС†РёСЋ РІРµС‚РєРё THEN
+    auto ifNode = createIfNode({ {LexemeType::Number, "0"} }, thenBlockContent); // РЈСЃР»РѕРІРёРµ 0 (false)
 
     auto mainBlockContent = createStatementSequence({ assignInitial, ifNode });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
 
     auto program = createProgramNode(varSection);
 
     ASSERT_NO_THROW(executor.Execute(program));
-    // Oжидаем, что x останется 0
+    // OР¶РёРґР°РµРј, С‡С‚Рѕ x РѕСЃС‚Р°РЅРµС‚СЃСЏ 0
 
     deleteHLNode(program);
 }
@@ -528,27 +528,27 @@ TEST(ProgramExecutorTest, IfElseConditionTrue) {
     auto assignThen = createStatementNode({ {LexemeType::Identifier, "x"}, {LexemeType::Operator, ":="}, {LexemeType::Number, "1"}, {LexemeType::Separator, ";"} });
     auto assignElse = createStatementNode({ {LexemeType::Identifier, "x"}, {LexemeType::Operator, ":="}, {LexemeType::Number, "2"}, {LexemeType::Separator, ";"} });
 
-    // Ветка then - это последовательность инструкций
+    // Р’РµС‚РєР° then - СЌС‚Рѕ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РёРЅСЃС‚СЂСѓРєС†РёР№
     auto thenBlockContent = createStatementSequence({ assignThen });
-    // auto thenBlockContainer = createSectionNode(NodeType::MAIN_BLOCK, { thenBlockContent }); // БЫЛО НЕПРАВИЛЬНО
+    // auto thenBlockContainer = createSectionNode(NodeType::MAIN_BLOCK, { thenBlockContent }); // Р‘Р«Р›Рћ РќР•РџР РђР’РР›Р¬РќРћ
 
-    // Ветка else - это последовательность инструкций
+    // Р’РµС‚РєР° else - СЌС‚Рѕ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РёРЅСЃС‚СЂСѓРєС†РёР№
     auto elseBlockContent = createStatementSequence({ assignElse });
-    // *** ИСПРАВЛЕНО ***: createElseNode теперь принимает первую инструкцию ветки ELSE
-    auto elseNode = createElseNode(elseBlockContent); // ELSE узел содержит последовательность
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: createElseNode С‚РµРїРµСЂСЊ РїСЂРёРЅРёРјР°РµС‚ РїРµСЂРІСѓСЋ РёРЅСЃС‚СЂСѓРєС†РёСЋ РІРµС‚РєРё ELSE
+    auto elseNode = createElseNode(elseBlockContent); // ELSE СѓР·РµР» СЃРѕРґРµСЂР¶РёС‚ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ
 
-    // *** ИСПРАВЛЕНО ***: createIfNode теперь принимает первую инструкцию ветки THEN и узел ELSE
-    auto ifNode = createIfNode({ {LexemeType::Number, "1"} }, thenBlockContent, elseNode); // Условие 1 (true), есть ELSE
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: createIfNode С‚РµРїРµСЂСЊ РїСЂРёРЅРёРјР°РµС‚ РїРµСЂРІСѓСЋ РёРЅСЃС‚СЂСѓРєС†РёСЋ РІРµС‚РєРё THEN Рё СѓР·РµР» ELSE
+    auto ifNode = createIfNode({ {LexemeType::Number, "1"} }, thenBlockContent, elseNode); // РЈСЃР»РѕРІРёРµ 1 (true), РµСЃС‚СЊ ELSE
 
     auto mainBlockContent = createStatementSequence({ assignInitial, ifNode });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
 
     auto program = createProgramNode(varSection);
 
     ASSERT_NO_THROW(executor.Execute(program));
-    // Ожидаем, что x станет 1
+    // РћР¶РёРґР°РµРј, С‡С‚Рѕ x СЃС‚Р°РЅРµС‚ 1
 
     deleteHLNode(program);
 }
@@ -564,62 +564,62 @@ TEST(ProgramExecutorTest, IfElseConditionFalse) {
     auto assignElse = createStatementNode({ {LexemeType::Identifier, "x"}, {LexemeType::Operator, ":="}, {LexemeType::Number, "2"}, {LexemeType::Separator, ";"} });
 
     auto thenBlockContent = createStatementSequence({ assignThen });
-    // auto thenBlockContainer = createSectionNode(NodeType::MAIN_BLOCK, { thenBlockContent }); // БЫЛО НЕПРАВИЛЬНО
+    // auto thenBlockContainer = createSectionNode(NodeType::MAIN_BLOCK, { thenBlockContent }); // Р‘Р«Р›Рћ РќР•РџР РђР’РР›Р¬РќРћ
 
     auto elseBlockContent = createStatementSequence({ assignElse });
-    // *** ИСПРАВЛЕНО ***: createElseNode теперь принимает первую инструкцию ветки ELSE
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: createElseNode С‚РµРїРµСЂСЊ РїСЂРёРЅРёРјР°РµС‚ РїРµСЂРІСѓСЋ РёРЅСЃС‚СЂСѓРєС†РёСЋ РІРµС‚РєРё ELSE
     auto elseNode = createElseNode(elseBlockContent);
 
-    // *** ИСПРАВЛЕНО ***: createIfNode теперь принимает первую инструкцию ветки THEN и узел ELSE
-    auto ifNode = createIfNode({ {LexemeType::Number, "0"} }, thenBlockContent, elseNode); // Условие 0 (false), есть ELSE
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: createIfNode С‚РµРїРµСЂСЊ РїСЂРёРЅРёРјР°РµС‚ РїРµСЂРІСѓСЋ РёРЅСЃС‚СЂСѓРєС†РёСЋ РІРµС‚РєРё THEN Рё СѓР·РµР» ELSE
+    auto ifNode = createIfNode({ {LexemeType::Number, "0"} }, thenBlockContent, elseNode); // РЈСЃР»РѕРІРёРµ 0 (false), РµСЃС‚СЊ ELSE
 
     auto mainBlockContent = createStatementSequence({ assignInitial, ifNode });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
 
     auto program = createProgramNode(varSection);
 
     ASSERT_NO_THROW(executor.Execute(program));
-    // Ожидаем, что x станет 2
+    // РћР¶РёРґР°РµРј, С‡С‚Рѕ x СЃС‚Р°РЅРµС‚ 2
 
     deleteHLNode(program);
 }
 
 
-// TODO: Тесты для READ (успешное чтение, чтение в int/double, ошибка ввода, чтение в необъявленную)
+// TODO: РўРµСЃС‚С‹ РґР»СЏ READ (СѓСЃРїРµС€РЅРѕРµ С‡С‚РµРЅРёРµ, С‡С‚РµРЅРёРµ РІ int/double, РѕС€РёР±РєР° РІРІРѕРґР°, С‡С‚РµРЅРёРµ РІ РЅРµРѕР±СЉСЏРІР»РµРЅРЅСѓСЋ)
 TEST(ProgramExecutorTest, CanReadInteger) {
     ProgramExecutor executor;
     // var x : integer; begin read(x); end.
     auto varDecl = createDeclarationNode({ {LexemeType::Identifier, "x"}, {LexemeType::Separator, ":"}, {LexemeType::VarType, "integer"}, {LexemeType::Separator, ";"} });
     auto varSection = createSectionNode(NodeType::VAR_SECTION, { varDecl });
 
-    // Read аргумент - это STATEMENT с идентификатором
+    // Read Р°СЂРіСѓРјРµРЅС‚ - СЌС‚Рѕ STATEMENT СЃ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂРѕРј
     auto readArg = createStatementNode({ {LexemeType::Identifier, "x"} });
-    // readCall ожидает последовательность узлов аргументов
+    // readCall РѕР¶РёРґР°РµС‚ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ СѓР·Р»РѕРІ Р°СЂРіСѓРјРµРЅС‚РѕРІ
     auto readArgsSequence = createStatementSequence({ readArg });
-    // createCallNode ожидает первый узел последовательности аргументов
+    // createCallNode РѕР¶РёРґР°РµС‚ РїРµСЂРІС‹Р№ СѓР·РµР» РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё Р°СЂРіСѓРјРµРЅС‚РѕРІ
     auto readCall = createCallNode({ LexemeType::Keyword, "read" }, { readArgsSequence }); // read(x)
-    // Парсер добавляет ';' после вызова read/write в expr узла CALL
+    // РџР°СЂСЃРµСЂ РґРѕР±Р°РІР»СЏРµС‚ ';' РїРѕСЃР»Рµ РІС‹Р·РѕРІР° read/write РІ expr СѓР·Р»Р° CALL
     readCall->expr.push_back({ LexemeType::Separator, ";" });
 
     auto mainBlockContent = createStatementSequence({ readCall });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
     auto program = createProgramNode(varSection);
 
-    // Перенаправляем std::cin для симуляции ввода
+    // РџРµСЂРµРЅР°РїСЂР°РІР»СЏРµРј std::cin РґР»СЏ СЃРёРјСѓР»СЏС†РёРё РІРІРѕРґР°
     std::stringstream input;
-    input << "123\n"; // Вводим число 123
+    input << "123\n"; // Р’РІРѕРґРёРј С‡РёСЃР»Рѕ 123
     std::streambuf* old_cin = std::cin.rdbuf(input.rdbuf());
 
     ASSERT_NO_THROW(executor.Execute(program));
 
-    // Возвращаем стандартный ввод
+    // Р’РѕР·РІСЂР°С‰Р°РµРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ РІРІРѕРґ
     std::cin.rdbuf(old_cin);
 
-    // TODO: Проверить значение x.
+    // TODO: РџСЂРѕРІРµСЂРёС‚СЊ Р·РЅР°С‡РµРЅРёРµ x.
     // EXPECT_EQ(executor.getInt("x"), 123);
 
     deleteHLNode(program);
@@ -637,22 +637,22 @@ TEST(ProgramExecutorTest, CanReadDouble) {
     readCall->expr.push_back({ LexemeType::Separator, ";" });
 
     auto mainBlockContent = createStatementSequence({ readCall });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
     auto program = createProgramNode(varSection);
 
-    // Перенаправляем std::cin для симуляции ввода
+    // РџРµСЂРµРЅР°РїСЂР°РІР»СЏРµРј std::cin РґР»СЏ СЃРёРјСѓР»СЏС†РёРё РІРІРѕРґР°
     std::stringstream input;
-    input << "4.56\n"; // Вводим число 4.56
+    input << "4.56\n"; // Р’РІРѕРґРёРј С‡РёСЃР»Рѕ 4.56
     std::streambuf* old_cin = std::cin.rdbuf(input.rdbuf());
 
     ASSERT_NO_THROW(executor.Execute(program));
 
-    // Возвращаем стандартный ввод
+    // Р’РѕР·РІСЂР°С‰Р°РµРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ РІРІРѕРґ
     std::cin.rdbuf(old_cin);
 
-    // TODO: Проверить значение y.
+    // TODO: РџСЂРѕРІРµСЂРёС‚СЊ Р·РЅР°С‡РµРЅРёРµ y.
     // EXPECT_DOUBLE_EQ(executor.getDouble("y"), 4.56);
 
     deleteHLNode(program);
@@ -670,19 +670,19 @@ TEST(ProgramExecutorTest, ReadErrorOnInvalidInput) {
     readCall->expr.push_back({ LexemeType::Separator, ";" });
 
     auto mainBlockContent = createStatementSequence({ readCall });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
     auto program = createProgramNode(varSection);
 
-    // Перенаправляем std::cin для симуляции ввода не числа
+    // РџРµСЂРµРЅР°РїСЂР°РІР»СЏРµРј std::cin РґР»СЏ СЃРёРјСѓР»СЏС†РёРё РІРІРѕРґР° РЅРµ С‡РёСЃР»Р°
     std::stringstream input;
-    input << "abc\n"; // Вводим некорректный ввод
+    input << "abc\n"; // Р’РІРѕРґРёРј РЅРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РІРІРѕРґ
     std::streambuf* old_cin = std::cin.rdbuf(input.rdbuf());
 
-    EXPECT_THROW(executor.Execute(program), std::runtime_error); // Ожидаем ошибку ввода
+    EXPECT_THROW(executor.Execute(program), std::runtime_error); // РћР¶РёРґР°РµРј РѕС€РёР±РєСѓ РІРІРѕРґР°
 
-    // Возвращаем стандартный ввод
+    // Р’РѕР·РІСЂР°С‰Р°РµРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ РІРІРѕРґ
     std::cin.rdbuf(old_cin);
 
     deleteHLNode(program);
@@ -697,25 +697,25 @@ TEST(ProgramExecutorTest, ReadErrorOnUndeclaredVariable) {
     readCall->expr.push_back({ LexemeType::Separator, ";" });
 
     auto mainBlockContent = createStatementSequence({ readCall });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     auto program = createProgramNode(mainBlock);
 
-    // Перенаправляем std::cin, иначе тест будет висеть в ожидании ввода
+    // РџРµСЂРµРЅР°РїСЂР°РІР»СЏРµРј std::cin, РёРЅР°С‡Рµ С‚РµСЃС‚ Р±СѓРґРµС‚ РІРёСЃРµС‚СЊ РІ РѕР¶РёРґР°РЅРёРё РІРІРѕРґР°
     std::stringstream input;
     input << "1\n";
     std::streambuf* old_cin = std::cin.rdbuf(input.rdbuf());
 
-    EXPECT_THROW(executor.Execute(program), std::runtime_error); // Ожидаем ошибку Undeclared variable
+    EXPECT_THROW(executor.Execute(program), std::runtime_error); // РћР¶РёРґР°РµРј РѕС€РёР±РєСѓ Undeclared variable
 
-    // Возвращаем стандартный ввод
+    // Р’РѕР·РІСЂР°С‰Р°РµРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ РІРІРѕРґ
     std::cin.rdbuf(old_cin);
 
     deleteHLNode(program);
 }
 
 
-// TODO: Тесты для WRITE (вывод строки, вывод числа/переменной, вывод выражения, вывод нескольких аргументов)
+// TODO: РўРµСЃС‚С‹ РґР»СЏ WRITE (РІС‹РІРѕРґ СЃС‚СЂРѕРєРё, РІС‹РІРѕРґ С‡РёСЃР»Р°/РїРµСЂРµРјРµРЅРЅРѕР№, РІС‹РІРѕРґ РІС‹СЂР°Р¶РµРЅРёСЏ, РІС‹РІРѕРґ РЅРµСЃРєРѕР»СЊРєРёС… Р°СЂРіСѓРјРµРЅС‚РѕРІ)
 TEST(ProgramExecutorTest, CanWriteString) {
     ProgramExecutor executor;
     // begin write("Hello, world!"); end.
@@ -725,21 +725,21 @@ TEST(ProgramExecutorTest, CanWriteString) {
     writeCall->expr.push_back({ LexemeType::Separator, ";" });
 
     auto mainBlockContent = createStatementSequence({ writeCall });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     auto program = createProgramNode(mainBlock);
 
-    // Перенаправляем std::cout для захвата вывода
+    // РџРµСЂРµРЅР°РїСЂР°РІР»СЏРµРј std::cout РґР»СЏ Р·Р°С…РІР°С‚Р° РІС‹РІРѕРґР°
     std::stringstream output;
     std::streambuf* old_cout = std::cout.rdbuf(output.rdbuf());
 
     ASSERT_NO_THROW(executor.Execute(program));
 
-    // Возвращаем стандартный вывод
+    // Р’РѕР·РІСЂР°С‰Р°РµРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ РІС‹РІРѕРґ
     std::cout.rdbuf(old_cout);
 
-    // Проверяем захваченный вывод
-    EXPECT_EQ(output.str(), "Hello, world!\n"); // Write добавляет endl
+    // РџСЂРѕРІРµСЂСЏРµРј Р·Р°С…РІР°С‡РµРЅРЅС‹Р№ РІС‹РІРѕРґ
+    EXPECT_EQ(output.str(), "Hello, world!\n"); // Write РґРѕР±Р°РІР»СЏРµС‚ endl
 
     deleteHLNode(program);
 }
@@ -769,16 +769,16 @@ TEST(ProgramExecutorTest, CanWriteExpression) {
 
     auto program = createProgramNode(varSection);
 
-    // *** ИСПРАВЛЕНО ***: Объявление stringstream output и сохранение старого буфера cout
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РћР±СЉСЏРІР»РµРЅРёРµ stringstream output Рё СЃРѕС…СЂР°РЅРµРЅРёРµ СЃС‚Р°СЂРѕРіРѕ Р±СѓС„РµСЂР° cout
     std::stringstream output;
     std::streambuf* old_cout = std::cout.rdbuf(output.rdbuf());
 
     ASSERT_NO_THROW(executor.Execute(program));
 
-    // Возвращаем стандартный вывод
+    // Р’РѕР·РІСЂР°С‰Р°РµРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ РІС‹РІРѕРґ
     std::cout.rdbuf(old_cout);
 
-    // Проверяем захваченный вывод: (10 * 5 + 2) = 52
+    // РџСЂРѕРІРµСЂСЏРµРј Р·Р°С…РІР°С‡РµРЅРЅС‹Р№ РІС‹РІРѕРґ: (10 * 5 + 2) = 52
     EXPECT_EQ(output.str(), "52\n");
 
     deleteHLNode(program);
@@ -801,29 +801,29 @@ TEST(ProgramExecutorTest, CanWriteMultipleArguments) {
     writeCall->expr.push_back({ LexemeType::Separator, ";" }); // Assuming parser adds ; after call
 
     auto mainBlockContent = createStatementSequence({ assignX, writeCall });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
 
     auto program = createProgramNode(varSection);
 
-    // Перенаправляем std::cout
+    // РџРµСЂРµРЅР°РїСЂР°РІР»СЏРµРј std::cout
     std::stringstream output;
     std::streambuf* old_cout = std::cout.rdbuf(output.rdbuf());
 
     ASSERT_NO_THROW(executor.Execute(program));
 
-    // Возвращаем стандартный вывод
+    // Р’РѕР·РІСЂР°С‰Р°РµРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ РІС‹РІРѕРґ
     std::cout.rdbuf(old_cout);
 
-    // Проверяем захваченный вывод.
-    EXPECT_EQ(output.str(), "Result: 42 is correct.\n"); // Ваша write добавляет пробелы между аргументами и endl в конце
+    // РџСЂРѕРІРµСЂСЏРµРј Р·Р°С…РІР°С‡РµРЅРЅС‹Р№ РІС‹РІРѕРґ.
+    EXPECT_EQ(output.str(), "Result:  42  is correct.\n"); // Р’Р°С€Р° write РґРѕР±Р°РІР»СЏРµС‚ РїСЂРѕР±РµР»С‹ РјРµР¶РґСѓ Р°СЂРіСѓРјРµРЅС‚Р°РјРё Рё endl РІ РєРѕРЅС†Рµ
 
     deleteHLNode(program);
 }
 
 
-// TODO: Тесты для ошибок деления на ноль (проверяется в PostfixExecutor, но вызывается из ProgramExecutor)
+// TODO: РўРµСЃС‚С‹ РґР»СЏ РѕС€РёР±РѕРє РґРµР»РµРЅРёСЏ РЅР° РЅРѕР»СЊ (РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ РІ PostfixExecutor, РЅРѕ РІС‹Р·С‹РІР°РµС‚СЃСЏ РёР· ProgramExecutor)
 TEST(ProgramExecutorTest, ErrorOnDivisionByZero) {
     ProgramExecutor executor;
     // var a, b, c; begin a := 10; b := 0; c := a / b; end.
@@ -841,18 +841,18 @@ TEST(ProgramExecutorTest, ErrorOnDivisionByZero) {
         });
 
     auto mainBlockContent = createStatementSequence({ assignA, assignB, assignC });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
     auto program = createProgramNode(varSection);
 
-    // Ожидаем ошибку деления на ноль
-    EXPECT_THROW(executor.Execute(program), std::runtime_error); // Сообщение должно содержать "Деление на ноль"
+    // РћР¶РёРґР°РµРј РѕС€РёР±РєСѓ РґРµР»РµРЅРёСЏ РЅР° РЅРѕР»СЊ
+    EXPECT_THROW(executor.Execute(program), std::runtime_error); // РЎРѕРѕР±С‰РµРЅРёРµ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ "Р”РµР»РµРЅРёРµ РЅР° РЅРѕР»СЊ"
 
     deleteHLNode(program);
 }
 
-// TODO: Тесты для деления на ноль в div/mod
+// TODO: РўРµСЃС‚С‹ РґР»СЏ РґРµР»РµРЅРёСЏ РЅР° РЅРѕР»СЊ РІ div/mod
 TEST(ProgramExecutorTest, ErrorOnIntegerDivisionByZero) {
     ProgramExecutor executor;
     // var a, b, c; begin a := 10; b := 0; c := a div b; end.
@@ -870,28 +870,28 @@ TEST(ProgramExecutorTest, ErrorOnIntegerDivisionByZero) {
         });
 
     auto mainBlockContent = createStatementSequence({ assignA, assignB, assignC });
-    // *** ИСПРАВЛЕНО ***: Используем createMainBlockNode для основного блока
+    // *** РРЎРџР РђР’Р›Р•РќРћ ***: РСЃРїРѕР»СЊР·СѓРµРј createMainBlockNode РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±Р»РѕРєР°
     auto mainBlock = createMainBlockNode({ mainBlockContent });
     varSection->pnext = mainBlock;
     auto program = createProgramNode(varSection);
 
-    // Ожидаем ошибку целочисленного деления на ноль
-    EXPECT_THROW(executor.Execute(program), std::runtime_error); // Сообщение должно содержать "Целочисленное деление на ноль"
+    // РћР¶РёРґР°РµРј РѕС€РёР±РєСѓ С†РµР»РѕС‡РёСЃР»РµРЅРЅРѕРіРѕ РґРµР»РµРЅРёСЏ РЅР° РЅРѕР»СЊ
+    EXPECT_THROW(executor.Execute(program), std::runtime_error); // РЎРѕРѕР±С‰РµРЅРёРµ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ "Р¦РµР»РѕС‡РёСЃР»РµРЅРЅРѕРµ РґРµР»РµРЅРёРµ РЅР° РЅРѕР»СЊ"
 
     deleteHLNode(program);
 }
 
-// TODO: Добавить тесты для:
-// - Множественные объявления в одной строке var/const (если Parser их так парсит)
-// - Присваивание результата выражения константе (уже покрыто тестом CanDeclareConstWithExpression) - НЕТ, нужно явно протестировать, что это ЗАПРЕЩЕНО
-// - Вложенные блоки begin/end (если Parser их создает как отдельный NodeType или просто как последовательность инструкций)
-// - Использование константы в выражении присваивания (уже покрыто косвенно)
-// - Использование переменных разных типов в одном выражении (e.g. int + double)
-// - Проверка типов при присваивании (что ProgramExecutor::handleStatement корректно работает с int/double)
-// - Проверка типов при чтении (что ProgramExecutor::handleCall для read корректно работает с int/double)
+// TODO: Р”РѕР±Р°РІРёС‚СЊ С‚РµСЃС‚С‹ РґР»СЏ:
+// - РњРЅРѕР¶РµСЃС‚РІРµРЅРЅС‹Рµ РѕР±СЉСЏРІР»РµРЅРёСЏ РІ РѕРґРЅРѕР№ СЃС‚СЂРѕРєРµ var/const (РµСЃР»Рё Parser РёС… С‚Р°Рє РїР°СЂСЃРёС‚)
+// - РџСЂРёСЃРІР°РёРІР°РЅРёРµ СЂРµР·СѓР»СЊС‚Р°С‚Р° РІС‹СЂР°Р¶РµРЅРёСЏ РєРѕРЅСЃС‚Р°РЅС‚Рµ (СѓР¶Рµ РїРѕРєСЂС‹С‚Рѕ С‚РµСЃС‚РѕРј CanDeclareConstWithExpression) - РќР•Рў, РЅСѓР¶РЅРѕ СЏРІРЅРѕ РїСЂРѕС‚РµСЃС‚РёСЂРѕРІР°С‚СЊ, С‡С‚Рѕ СЌС‚Рѕ Р—РђРџР Р•Р©Р•РќРћ
+// - Р’Р»РѕР¶РµРЅРЅС‹Рµ Р±Р»РѕРєРё begin/end (РµСЃР»Рё Parser РёС… СЃРѕР·РґР°РµС‚ РєР°Рє РѕС‚РґРµР»СЊРЅС‹Р№ NodeType РёР»Рё РїСЂРѕСЃС‚Рѕ РєР°Рє РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РёРЅСЃС‚СЂСѓРєС†РёР№)
+// - РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ РєРѕРЅСЃС‚Р°РЅС‚С‹ РІ РІС‹СЂР°Р¶РµРЅРёРё РїСЂРёСЃРІР°РёРІР°РЅРёСЏ (СѓР¶Рµ РїРѕРєСЂС‹С‚Рѕ РєРѕСЃРІРµРЅРЅРѕ)
+// - РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ РїРµСЂРµРјРµРЅРЅС‹С… СЂР°Р·РЅС‹С… С‚РёРїРѕРІ РІ РѕРґРЅРѕРј РІС‹СЂР°Р¶РµРЅРёРё (e.g. int + double)
+// - РџСЂРѕРІРµСЂРєР° С‚РёРїРѕРІ РїСЂРё РїСЂРёСЃРІР°РёРІР°РЅРёРё (С‡С‚Рѕ ProgramExecutor::handleStatement РєРѕСЂСЂРµРєС‚РЅРѕ СЂР°Р±РѕС‚Р°РµС‚ СЃ int/double)
+// - РџСЂРѕРІРµСЂРєР° С‚РёРїРѕРІ РїСЂРё С‡С‚РµРЅРёРё (С‡С‚Рѕ ProgramExecutor::handleCall РґР»СЏ read РєРѕСЂСЂРµРєС‚РЅРѕ СЂР°Р±РѕС‚Р°РµС‚ СЃ int/double)
 
 
-// --- Дополнительные тесты после реализации проверки константности ---
+// --- Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ С‚РµСЃС‚С‹ РїРѕСЃР»Рµ СЂРµР°Р»РёР·Р°С†РёРё РїСЂРѕРІРµСЂРєРё РєРѕРЅСЃС‚Р°РЅС‚РЅРѕСЃС‚Рё ---
 
 TEST(ProgramExecutorTest, CannotAssignToConstant) {
     ProgramExecutor executor;
@@ -910,8 +910,8 @@ TEST(ProgramExecutorTest, CannotAssignToConstant) {
 
     auto program = createProgramNode(constSection);
 
-    // Ожидаем ошибку попытки присвоить константе
-    EXPECT_THROW(executor.Execute(program), std::runtime_error); // Сообщение должно содержать "Attempt to assign to constant"
+    // РћР¶РёРґР°РµРј РѕС€РёР±РєСѓ РїРѕРїС‹С‚РєРё РїСЂРёСЃРІРѕРёС‚СЊ РєРѕРЅСЃС‚Р°РЅС‚Рµ
+    EXPECT_THROW(executor.Execute(program), std::runtime_error); // РЎРѕРѕР±С‰РµРЅРёРµ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ "Attempt to assign to constant"
 
     deleteHLNode(program);
 }
@@ -935,15 +935,15 @@ TEST(ProgramExecutorTest, CannotReadIntoConstant) {
 
     auto program = createProgramNode(constSection);
 
-    // Перенаправляем std::cin, иначе тест будет висеть в ожидании ввода
+    // РџРµСЂРµРЅР°РїСЂР°РІР»СЏРµРј std::cin, РёРЅР°С‡Рµ С‚РµСЃС‚ Р±СѓРґРµС‚ РІРёСЃРµС‚СЊ РІ РѕР¶РёРґР°РЅРёРё РІРІРѕРґР°
     std::stringstream input;
     input << "1\n";
     std::streambuf* old_cin = std::cin.rdbuf(input.rdbuf());
 
-    // Ожидаем ошибку попытки чтения в константу
-    EXPECT_THROW(executor.Execute(program), std::runtime_error); // Сообщение должно содержать "Attempt to read into constant"
+    // РћР¶РёРґР°РµРј РѕС€РёР±РєСѓ РїРѕРїС‹С‚РєРё С‡С‚РµРЅРёСЏ РІ РєРѕРЅСЃС‚Р°РЅС‚Сѓ
+    EXPECT_THROW(executor.Execute(program), std::runtime_error); // РЎРѕРѕР±С‰РµРЅРёРµ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ "Attempt to read into constant"
 
-    // Возвращаем стандартный ввод
+    // Р’РѕР·РІСЂР°С‰Р°РµРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ РІРІРѕРґ
     std::cin.rdbuf(old_cin);
 
     deleteHLNode(program);
@@ -973,14 +973,14 @@ TEST(ProgramExecutorTest, CanUseConstantInExpression) {
     auto program = createProgramNode(constSection);
 
     ASSERT_NO_THROW(executor.Execute(program));
-    // TODO: Проверить значение x. Ожидается x = 10
+    // TODO: РџСЂРѕРІРµСЂРёС‚СЊ Р·РЅР°С‡РµРЅРёРµ x. РћР¶РёРґР°РµС‚СЃСЏ x = 10
 
     deleteHLNode(program);
 }
 
 
 TEST(ExecutorTest, FullProgram) {
-    string source = //Не работает в объявлениях присвоение с указанием типа, объявление нескольких переменных, похоже тип дабл вообще нельзя оюъявить
+    string source = //ГЌГҐ Г°Г ГЎГ®ГІГ ГҐГІ Гў Г®ГЎГєГїГўГ«ГҐГ­ГЁГїГµ ГЇГ°ГЁГ±ГўГ®ГҐГ­ГЁГҐ Г± ГіГЄГ Г§Г Г­ГЁГҐГ¬ ГІГЁГЇГ , Г®ГЎГєГїГўГ«ГҐГ­ГЁГҐ Г­ГҐГ±ГЄГ®Г«ГјГЄГЁГµ ГЇГҐГ°ГҐГ¬ГҐГ­Г­Г»Гµ, ГЇГ®ГµГ®Г¦ГҐ ГІГЁГЇ Г¤Г ГЎГ« ГўГ®Г®ГЎГ№ГҐ Г­ГҐГ«ГјГ§Гї Г®ГѕГєГїГўГЁГІГј
         R"(     program Example;
         const
         Pi : double = 3.1415926;
@@ -993,7 +993,7 @@ TEST(ExecutorTest, FullProgram) {
     Read(num2);
     Write("Input double: ");
     Read(d);
-    if (b mod 2 = 0) then
+    if (d mod 2 = 0) then
         begin
         Res := (num1 - num2 * 5 div 2) / (d * 2);
     Write("Result = ", Res);
@@ -1014,7 +1014,7 @@ TEST(ExecutorTest, FullProgram) {
 
     ProgramExecutor executor;
 
-    
+
     EXPECT_NO_THROW(
         try {
         executor.Execute(result);

@@ -54,7 +54,7 @@ void ProgramExecutor::processNode(HLNode* node)
     if (!node) 
         return;
 
-    cout << "EXEC: "<< NodeTypeToString(node->type)<<"\n" << lexvectostr(node->expr) << endl;
+    // cout << "EXEC: "<< NodeTypeToString(node->type)<<"\n" << lexvectostr(node->expr) << endl;
     
 
     // Обработка узла в зависимости от его типа
@@ -145,18 +145,13 @@ void ProgramExecutor::handleBlock(HLNode* node)
 }
 
 // Обработчик для узлов DECLARATION (объявление констант или переменных)
-void ProgramExecutor::handleDeclaration(HLNode* node) 
+void ProgramExecutor::handleDeclaration(HLNode* node)
 {
     if (node->expr.empty())
     {
-        // По Parser::parseDeclaration, expr будет содержать хотя бы {;}.
-        // Если expr == {;}, то это "var ;" или "const ;", что является синтаксической ошибкой в Паскале.
-        // Но ProgramExecutor должен обрабатывать то, что ему дал парсер.
-        // Если expr пустой, это действительно ошибка.
         throw std::runtime_error("Declaration node has empty expression vector.");
     }
 
-    // Найдем индекс последней лексемы ';'
     size_t endIndex = node->expr.size();
     if (!node->expr.empty() && node->expr.back().type == LexemeType::Separator && node->expr.back().value == ";")
     {
@@ -164,7 +159,6 @@ void ProgramExecutor::handleDeclaration(HLNode* node)
     }
     else
     {
-        // Для устойчивости, продолжим обработку до конца expr.
         endIndex = node->expr.size();
     }
 
@@ -177,12 +171,10 @@ void ProgramExecutor::handleDeclaration(HLNode* node)
         std::string varName = "";
         size_t nameStartIndex = currentPos; // Начало текущего сегмента объявления
 
-        // Имя должно быть первым идентификатором в текущем сегменте
-        bool foundName = false;
+        // Пропускаем любые лексемы перед именем (не должно быть по корректной грамматике)
         while (currentPos < endIndex && (node->expr[currentPos].type != LexemeType::Identifier) &&
             !(node->expr[currentPos].type == LexemeType::Separator && node->expr[currentPos].value == ","))
         {
-            // Пропускаем любые лексемы перед именем (не должно быть по корректной грамматике, но на всякий случай)
             currentPos++;
         }
 
@@ -191,24 +183,19 @@ void ProgramExecutor::handleDeclaration(HLNode* node)
             varName = node->expr[currentPos].value;
             nameStartIndex = currentPos;
             currentPos++; // Переходим после имени
-            foundName = true;
         }
         else if (currentPos < endIndex && node->expr[currentPos].type == LexemeType::Separator && node->expr[currentPos].value == ",")
         {
-            // Если в начале сегмента стоит запятая, это ошибка синтаксиса (две запятые подряд или запятая в начале).
             throw std::runtime_error("Syntax error in declaration: Unexpected ',' at position " + std::to_string(currentPos));
         }
         else
         {
-            // Если дошли до endIndex или до ',', но не нашли идентификатор
-            if (currentPos < endIndex) 
+            if (currentPos < endIndex)
             {
                 throw std::runtime_error("Syntax error in declaration: Expected identifier at position " + std::to_string(currentPos));
             }
-            // Если currentPos == endIndex, значит, обработали все сегменты до конца. Выходим.
-            break;
+            break; // currentPos == endIndex, обработали все сегменты
         }
-
 
         // Проверка на повторное объявление ПЕРЕД добавлением
         if (vartable.hasInt(varName) || vartable.hasDouble(varName))
@@ -216,19 +203,18 @@ void ProgramExecutor::handleDeclaration(HLNode* node)
             throw std::runtime_error("Variable '" + varName + "' is already declared.");
         }
 
-        // 2. Ищем оператор присваивания (=) или двоеточие (:) после имени в текущем сегменте
+        // 2. Ищем оператор присваивания (=), двоеточие (:) и следующую запятую (,) или конец сегмента
         size_t assignIndex = std::string::npos;
         size_t typeIndex = std::string::npos;
-        // Конец текущего сегмента объявления - это следующая запятая или endIndex
-        size_t endOfCurrentDeclarationSegment = endIndex;
+        size_t commaOrEndIndex = endIndex; // Индекс следующей ',' или endIndex
+
         for (size_t i = currentPos; i < endIndex; ++i)
         {
             if (node->expr[i].type == LexemeType::Separator && node->expr[i].value == ",")
             {
-                endOfCurrentDeclarationSegment = i; // Нашли конец сегмента (запятую)
+                commaOrEndIndex = i; // Нашли конец текущего сегмента (запятую)
                 break;
             }
-            // Ищем '=' или ':' в этом сегменте до запятой или endIndex
             if (node->expr[i].type == LexemeType::Operator && node->expr[i].value == "=" && assignIndex == std::string::npos)
             {
                 assignIndex = i;
@@ -238,66 +224,91 @@ void ProgramExecutor::handleDeclaration(HLNode* node)
                 typeIndex = i;
             }
         }
-        // Если endOfCurrentDeclarationSegment остался endIndex, значит, в этом сегменте нет запятой,
-        // и он продолжается до конца expr (или до ';').
+        // endOfCurrentDeclarationSegment теперь равен commaOrEndIndex
 
-       // 3. Обрабатываем объявление в зависимости от найденного оператора/разделителя
+       // 3. Определяем тип объявления и обрабатываем его
 
-        bool isConstant = (assignIndex != std::string::npos); // Объявление константы, если есть '='
+        bool isConstant = (assignIndex != std::string::npos); // Это константа, если есть '='
 
-        // Если найдено оператор присваивания (=)
+        // Если это константа (есть '=')
         if (isConstant)
         {
-            // Если найден также разделитель типа (:) ПЕРЕД знаком присваивания, это ошибка синтаксиса.
-            if (typeIndex != std::string::npos && typeIndex < assignIndex)
+            // Проверяем синтаксис константы: Имя [: Тип] = Значение ;
+            // Если указан тип (есть ':')
+            std::string typeName = "";
+            if (typeIndex != std::string::npos && typeIndex < assignIndex) // Если ':' находится перед '='
             {
-                throw std::runtime_error("Syntax error in declaration: Type specifier before assignment for '" + varName + "'");
+                // Тип должен идти сразу после двоеточия
+                if (typeIndex + 1 >= assignIndex || node->expr[typeIndex + 1].type != LexemeType::VarType) {
+                    throw std::runtime_error("Syntax error in constant declaration: Missing or invalid type after ':' for '" + varName + "'");
+                }
+                typeName = node->expr[typeIndex + 1].value;
+                // Проверяем, что между типом и '=' нет лишних лексем
+                if (typeIndex + 2 < assignIndex) {
+                    throw std::runtime_error("Syntax error in constant declaration: Unexpected tokens between type and '=' for '" + varName + "'");
+                }
+            }
+            // Если тип не указан, typeIndex == std::string::npos или typeIndex > assignIndex (ошибка синтаксиса)
+            else if (typeIndex != std::string::npos) {
+                // Если ':' после '=', это ошибка синтаксиса
+                throw std::runtime_error("Syntax error in constant declaration: Type specifier after assignment for '" + varName + "'");
+            }
+
+            // Проверяем, есть ли что-то после '=' до конца сегмента (запятой или endIndex)
+            if (assignIndex + 1 >= commaOrEndIndex) {
+                throw std::runtime_error("Missing value/expression for constant declaration: " + varName);
             }
 
             // Собираем лексемы выражения для значения константы
             std::vector<Lexeme> valueExpr;
-            // Лексемы идут сразу после знака присваивания до конца сегмента (запятой или endIndex)
-            for (size_t i = assignIndex + 1; i < endOfCurrentDeclarationSegment; ++i)
+            for (size_t i = assignIndex + 1; i < commaOrEndIndex; ++i)
             {
-                // Дополнительная проверка: не должно быть ';' внутри выражения константы
-                if (node->expr[i].type == LexemeType::Separator && node->expr[i].value == ";") 
-                {
-                    throw std::runtime_error("Syntax error in declaration: Unexpected ';' inside constant value expression for '" + varName + "'");
-                }
                 valueExpr.push_back(node->expr[i]);
-            }
-
-            if (valueExpr.empty())
-            {
-                throw std::runtime_error("Missing value/expression for constant declaration: " + varName);
             }
 
             // Вычисляем значение выражения
             double result = executeExpression(valueExpr);
 
-            // Добавляем константу в TableManager как double константу.
-            // addDouble вернет false, если имя уже было объявлено (что уже проверено).
-            vartable.addDouble(varName, result, true); // Добавляем как константу (true)
+            // Добавляем константу в TableManager.
+            // Используем указанный тип, если есть, иначе по умолчанию double.
+            if (!typeName.empty()) {
+                if (typeName == "integer") {
+                    vartable.addInt(varName, static_cast<int>(result), true); // Добавляем как константу int
+                }
+                else if (typeName == "double") {
+                    vartable.addDouble(varName, result, true); // Добавляем как константу double
+                }
+                else {
+                    // Это не должно случиться, если Lexer правильно классифицирует VarType
+                    throw std::runtime_error("Internal error: Unexpected VarType '" + typeName + "' for constant.");
+                }
+            }
+            else {
+                // Если тип не указан, добавляем как double по умолчанию для констант
+                vartable.addDouble(varName, result, true); // Добавляем как константу (true)
+            }
+
         }
-        // Если не константа, и найден разделитель типа (:)
+        // Если это не константа (нет '='), и найден разделитель типа (':')
         else if (typeIndex != std::string::npos)
         {
-            // Если найден оператор присваивания (=) ПЕРЕД разделителем типа, это ошибка синтаксиса.
-            if (assignIndex != std::string::npos && assignIndex < typeIndex)
-            {
-                throw std::runtime_error("Syntax error in declaration: Assignment before type specifier for '" + varName + "'");
+            // Проверяем синтаксис переменной с типом: Имя : Тип ;
+             // Проверяем, что между именем и ':' нет лишних лексем
+            if (nameStartIndex + 1 < typeIndex) {
+                throw std::runtime_error("Syntax error in variable declaration: Unexpected tokens after name '" + varName + "' before ':'");
             }
+
             // Тип должен идти сразу после двоеточия
-            if (typeIndex + 1 >= endOfCurrentDeclarationSegment || node->expr[typeIndex + 1].type != LexemeType::VarType) 
+            if (typeIndex + 1 >= commaOrEndIndex || node->expr[typeIndex + 1].type != LexemeType::VarType)
             {
                 throw std::runtime_error("Missing or invalid type after ':' for variable: " + varName);
             }
             std::string typeName = node->expr[typeIndex + 1].value;
 
             // Проверяем, что после типа нет ничего до конца сегмента (запятой или endIndex)
-            if (typeIndex + 2 < endOfCurrentDeclarationSegment)
+            if (typeIndex + 2 < commaOrEndIndex)
             {
-                throw std::runtime_error("Syntax error in declaration: Unexpected tokens after type for variable: " + varName);
+                throw std::runtime_error("Syntax error in variable declaration: Unexpected tokens after type for variable: " + varName);
             }
 
             if (typeName == "double")
@@ -310,31 +321,36 @@ void ProgramExecutor::handleDeclaration(HLNode* node)
             }
             else
             {
+                // Это не должно случиться
                 throw std::runtime_error("Unsupported variable type: " + typeName);
             }
         }
-        // Если не константа, нет типа - это переменная без явного типа (предполагается int)
+        // Если это не константа, нет типа - это переменная без явного типа (предполагается int)
         else
         {
             // Проверяем, что после имени до конца сегмента (запятой или endIndex) нет никаких лексем
-            if (nameStartIndex + 1 < endOfCurrentDeclarationSegment)
+            if (nameStartIndex + 1 < commaOrEndIndex)
             {
-                // Если после имени есть лексемы до ',', но это не '=' или ':', это ошибка синтаксиса
-                // (Например, `var x y ;` или `var x + 5 ;`)
-                throw std::runtime_error("Syntax error in declaration: Unexpected token after variable name '" + varName + "'");
+                throw std::runtime_error("Syntax error in variable declaration: Unexpected token after variable name '" + varName + "'");
             }
             vartable.addInt(varName, 0, false); // Добавляем как переменную (false) int по умолчанию
         }
 
-        // 4. Переходим к началу следующего сегмента объявления (после текущего сегмента)
-        currentPos = endOfCurrentDeclarationSegment;
+        // 4. Переходим к началу следующего сегмента объявления (после текущего сегмента и разделителя ',')
+        currentPos = commaOrEndIndex;
+        // Если текущая позиция указывает на запятую, переходим после нее.
+        if (currentPos < endIndex && node->expr[currentPos].type == LexemeType::Separator && node->expr[currentPos].value == ",")
+        {
+            currentPos++; // Пропускаем запятую
+        }
     }
 
-    // После обработки всех сегментов до endIndex, убедимся, что мы находимся в конце expr или на ';'
-    if (currentPos < node->expr.size() && !(node->expr[currentPos].type == LexemeType::Separator && node->expr[currentPos].value == ";"))
+    // Проверяем, что после обработки всех сегментов мы действительно достигли endIndex
+    if (currentPos != endIndex)
     {
-         // Это не должно случиться, если endIndex был найден корректно как индекс ';'
-         throw std::runtime_error("Internal error in declaration parsing: Did not reach end of expression.");
+        // Это должно случиться, если есть лишние лексемы после последней запятой,
+        // которые не были частью сегмента.
+        throw std::runtime_error("Syntax error in declaration: Unexpected tokens after last variable/constant declaration.");
     }
 }
 
@@ -503,9 +519,6 @@ void ProgramExecutor::handleCall(HLNode* node)
         double value;
         // Запрос ввода от пользователя
         std::cout << "Enter value for " << varName << ": ";
-        // Очистка буфера ввода перед считыванием числа
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         if (!(std::cin >> value)) 
         {
             // Обработка ошибки ввода (если пользователь ввел не число)
@@ -526,44 +539,32 @@ void ProgramExecutor::handleCall(HLNode* node)
     }
     else if (functionName == "write") 
     {
-        // Write ожидает один или несколько аргументов (выражения или строки).
-        HLNode* currentArgNode = node->pdown; // Начинаем с первого аргумента
+        HLNode* currentArgNode = node->pdown;
+        bool isFirstArg = true; // Флаг для отслеживания первого аргумента
 
-
-
-        while (currentArgNode) 
-        {
-            // Каждый аргумент - это STATEMENT с лексемами в expr
-            if (currentArgNode->type != NodeType::STATEMENT) 
-            {
+        while (currentArgNode) {
+            if (currentArgNode->type != NodeType::STATEMENT) {
                 throw std::runtime_error("Invalid Write statement format: expected STATEMENT node for argument.");
             }
 
-            if (!currentArgNode->expr.empty()) 
-            {
-                // Если аргумент - строковый литерал из одной лексемы
-                if (currentArgNode->expr.size() == 1 && currentArgNode->expr[0].type == LexemeType::StringLiteral) 
-                {
-                    // Выводим сам строковый литерал
-                    std::cout << currentArgNode->expr[0].value; // Не добавляем endl здесь, чтобы можно было выводить несколько аргументов в одной строке
+            if (!isFirstArg) { // Если это не первый аргумент, добавляем пробел перед ним
+                std::cout << " ";
+            }
+
+            if (!currentArgNode->expr.empty()) {
+                if (currentArgNode->expr.size() == 1 && currentArgNode->expr[0].type == LexemeType::StringLiteral) {
+                    std::cout << currentArgNode->expr[0].value;
                 }
-                else 
-                {
-                    // Иначе, вычисляем аргумент как выражение
+                else {
                     double result = executeExpression(currentArgNode->expr);
-                    // Выводим результат вычисления
-                    std::cout << result; // Не добавляем endl
+                    std::cout << result;
                 }
             }
-            // Переходим к следующему аргументу
-            currentArgNode = currentArgNode->pnext;
 
-            if (currentArgNode) 
-                std::cout << " ";
+            isFirstArg = false; // После обработки первого аргумента, сбрасываем флаг
+            currentArgNode = currentArgNode->pnext; // Переходим к следующему аргументу
         }
-        // После вывода всех аргументов, выводим перевод строки
-        std::cout << std::endl;
-
+        std::cout << std::endl; // Выводим перевод строки
     }
     else 
     {
