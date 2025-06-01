@@ -977,3 +977,51 @@ TEST(ProgramExecutorTest, CanUseConstantInExpression) {
 
     deleteHLNode(program);
 }
+
+
+TEST(ParserTest, FullProgram) {
+    string source =
+        R"(     program Example;
+        const
+        Pi : double = 3.1415926;
+    var
+        num1, num2: integer;
+    Res, d: double;
+    begin
+        num1 := 5;
+    Write("Input int: ");
+    Read(num2);
+    Write("Input double: ");
+    Read(d);
+    if (b mod 2 = 0) then
+        begin
+        Res := (num1 - num2 * 5 div 2) / (d * 2);
+    Write("Result = ", Res);
+    end
+    else
+        Write("Invalid input");
+    end.)";
+    Lexer lexer;
+    vector<Lexeme> input = lexer.Tokenize(source);
+
+    Parser parser;
+    HLNode* result = parser.BuildHList(input);
+
+    string res = HLNodeToString(result, 0);
+    cout << "!\n" << endl;
+    cout << res << endl;
+    cout << "!\n" << endl;
+
+    ProgramExecutor executor;
+
+    
+    EXPECT_NO_THROW(
+        try {
+        executor.Execute(result);
+    }
+    catch (exception e)
+    {
+        cout << "!!!! ERROR\n" << e.what() << endl;
+    }
+        );
+}

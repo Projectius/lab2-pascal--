@@ -54,6 +54,9 @@ void ProgramExecutor::processNode(HLNode* node)
     if (!node) 
         return;
 
+    cout << "EXEC: "<< NodeTypeToString(node->type)<<"\n" << lexvectostr(node->expr) << endl;
+    
+
     // Обработка узла в зависимости от его типа
     switch (node->type) 
     {

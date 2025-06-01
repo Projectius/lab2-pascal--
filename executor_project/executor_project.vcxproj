@@ -130,6 +130,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\source\lexer.cpp" />
     <ClCompile Include="..\source\parser.cpp" />
     <ClCompile Include="..\source\postfix.cpp" />
     <ClCompile Include="..\source\program_executor.cpp" />
