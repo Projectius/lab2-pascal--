@@ -27,3 +27,8 @@ void HLNode::addChild(HLNode* child) {
         current->pnext = child;
     }
 }
+
+HLNode::~HLNode() {
+    delete pdown; // Удалит все узлы в ветке pdown
+    delete pnext; // Удалит все узлы в ветке pnext
+}

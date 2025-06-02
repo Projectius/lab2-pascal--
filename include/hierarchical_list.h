@@ -27,4 +27,7 @@ struct HLNode
 
     void addNext(HLNode* child);
     void addChild(HLNode* child);
+    ~HLNode();
 };
+
+

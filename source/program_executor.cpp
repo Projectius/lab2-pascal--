@@ -1,4 +1,4 @@
-#define DEBUG_EXECPRINT
+//#define DEBUG_EXECPRINT
 
 #include "program_executor.h"
 #include <limits>   

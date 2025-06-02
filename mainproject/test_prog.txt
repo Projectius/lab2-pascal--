@@ -1,0 +1,20 @@
+program Example;
+    const
+        Pi : double = 3.1415926;
+    var
+        num1, num2: integer;
+    Res, d: double;
+    begin
+        num1 := 5;
+    Write("Input int: ");
+    Read(num2);
+    Write("Input double divisible by two: ");
+    Read(d);
+    if (d mod 2 = 0) then
+        begin
+        Res := (num1 + num2)/2;
+        Write("Result = ", Res);
+        end
+    else
+        Write("Invalid input");
+    end.
