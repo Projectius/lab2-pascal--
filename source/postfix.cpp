@@ -68,7 +68,8 @@ void PostfixExecutor::buildPostfix(HLNode* node) {
     }
 
     // Обрабатываем следующие узлы на том же уровне
-    if (node->pnext) buildPostfix(node->pnext);
+    if (node->pnext) 
+        buildPostfix(node->pnext);
 }
 
 void PostfixExecutor::toPostfix(HLNode* start) {
@@ -118,28 +119,39 @@ double PostfixExecutor::executePostfix() {
 }
 
 double PostfixExecutor::getValueFromLexeme(const Lexeme& lex) {
-    if (lex.type == LexemeType::Number) {
-        try {
+    if (lex.type == LexemeType::Number) 
+    {
+        try 
+        {
             return stod(lex.value);
         }
-        catch (...) {
-            throw runtime_error("Некорректный числовой формат: " + lex.value);
+        catch (...) 
+        {
+            throw runtime_error("Invalid numeric format in the lexeme: " + lex.value);
         }
     }
-    else if (lex.type == LexemeType::Identifier) {
-        try {
-            return vartable->getDouble(lex.value);
+    // Если лексема - идентификатор (переменная или константа)
+    else if (lex.type == LexemeType::Identifier) 
+    {
+        try 
+        {
+            // Сначала пытаемся получить как double (из doubletable).
+            return vartable->getDoubleConst(lex.value);
         }
-        catch (const out_of_range&) {
-            try {
-                return static_cast<double>(vartable->getInt(lex.value));
+        catch (const out_of_range&) 
+        { 
+            try 
+            {
+                return static_cast<double>(vartable->getIntConst(lex.value));
             }
-            catch (const out_of_range&) {
-                throw runtime_error("Неизвестная переменная: " + lex.value);
+            catch (const out_of_range&) 
+            { 
+                // Переменная/константа с таким именем не найдена ни в одной таблице.
+                throw runtime_error("Identifier '" + lex.value + "' isn't declared.");
             }
         }
     }
-    throw runtime_error("Некорректная лексема: " + lex.value);
+    throw runtime_error("Incorrect lexeme to get the value: Type=" + std::to_string(static_cast<int>(lex.type)) + ", Value=" + lex.value);
 }
 
 double PostfixExecutor::evaluateOperation(const string& op, double lhs, double rhs) {
@@ -150,8 +162,16 @@ double PostfixExecutor::evaluateOperation(const string& op, double lhs, double r
         if (rhs == 0) throw runtime_error("Деление на ноль");
         return lhs / rhs;
     }
-    if (op == "div") return floor(lhs / rhs);
-    if (op == "mod") return fmod(lhs, rhs);
+    if (op == "div")
+    {
+        if (rhs == 0) throw runtime_error("Целочисленное деление на ноль");
+        return floor(lhs / rhs);
+    }
+    if (op == "mod")
+    {
+        if (rhs == 0) throw runtime_error("Вычисление остатка (mod) от деления на ноль");
+        return fmod(lhs, rhs);
+    }
 
     throw runtime_error("Неизвестный оператор: " + op);
 }
