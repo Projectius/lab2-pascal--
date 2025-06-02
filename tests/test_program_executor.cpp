@@ -1009,9 +1009,9 @@ TEST(ExecutorTest, FullProgram) {
     HLNode* result = parser.BuildHList(input);
 
     string res = HLNodeToString(result, 0);
-    cout << "!\n" << endl;
+    /*cout << "!\n" << endl;
     cout << res << endl;
-    cout << "!\n" << endl;
+    cout << "!\n" << endl;*/
 
     ProgramExecutor executor;
 
