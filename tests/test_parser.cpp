@@ -2,6 +2,56 @@
 #include "parser.h"
 #include "lexer.h"
 
+// Тест на отсутствие имени программы
+TEST(ParserTest, throws_when_missing_program_name) {
+    string source = "program ; begin end.";
+    Lexer lexer;
+    vector<Lexeme> input = lexer.Tokenize(source);
+    Parser parser;
+    EXPECT_THROW(parser.BuildHList(input), runtime_error);
+}
+
+
+// Тест на отсутствие скобки после функции
+TEST(ParserTest, throws_when_missing_paren_after_func) {
+    string source =
+        "program Test;"
+        "begin"
+        "   write 'test';"
+        "end.";
+    Lexer lexer;
+    vector<Lexeme> input = lexer.Tokenize(source);
+    Parser parser;
+    EXPECT_THROW(parser.BuildHList(input), runtime_error);
+}
+
+// Тест на отсутствие условия после if
+TEST(ParserTest, throws_when_missing_condition_after_if) {
+    string source =
+        "program Test;"
+        "begin"
+        "   if then write('test');"
+        "end.";
+    Lexer lexer;
+    vector<Lexeme> input = lexer.Tokenize(source);
+    Parser parser;
+    EXPECT_THROW(parser.BuildHList(input), runtime_error);
+}
+
+// Тест на незакрытый блок
+TEST(ParserTest, throws_when_unclosed_block) {
+    string source =
+        "program Test;"
+        "begin"
+        "   if a then begin"
+        "      write('test');"
+        "end.";
+    Lexer lexer;
+    vector<Lexeme> input = lexer.Tokenize(source);
+    Parser parser;
+    EXPECT_THROW(parser.BuildHList(input), runtime_error);
+}
+
 TEST(ParserTest, multiArg_func) {
     string source =
         R"( 
@@ -33,6 +83,21 @@ TEST(ParserTest, multiArg_func) {
     /*cout << "!\n" << endl;
     cout << res << endl;
     cout << "!\n" << endl;*/
+    EXPECT_EQ(res, expected);
+}
+
+// Тест на пустую программу
+TEST(ParserTest, emptyProgram) {
+    string source = "program Empty; begin end.";
+    Lexer lexer;
+    vector<Lexeme> input = lexer.Tokenize(source);
+    Parser parser;
+    HLNode* result = parser.BuildHList(input);
+
+    string expected = R"([PROGRAM]
+  [MAIN_BLOCK]
+)";
+    string res = HLNodeToString(result, 0);
     EXPECT_EQ(res, expected);
 }
 

@@ -89,7 +89,9 @@ void Parser::parseStatement(HLNode* parent) {
 HLNode* Parser::parseFunctionCall() {
     auto funcName = currentLex();
     advance(); // Пропускаем имя функции
-
+    if (!match(LexemeType::Separator) || currentLex().value != "(") {
+        throw runtime_error("Expected '(' after function name");
+    }
     auto callNode = createNode(NodeType::CALL, { funcName });
     advance(); // Пропускаем открывающую скобку
 
@@ -112,7 +114,9 @@ HLNode* Parser::parseFunctionCall() {
 
         if (match(LexemeType::Separator) && currentLex().value == ",") advance();
     }
-
+    if (pos >= lexemes.size() || !match(LexemeType::Separator) || currentLex().value != ")") {
+        throw runtime_error("Expected ')' after function arguments");
+    }
     advance(); // Пропускаем закрывающую скобку
     advance(); // Пропускаем точку с запятой
     return callNode;
@@ -120,6 +124,9 @@ HLNode* Parser::parseFunctionCall() {
 
 HLNode* Parser::parseIf() {
     advance(); // Пропускаем 'if'
+    if (matchKeyword("then") || matchKeyword("begin")) {
+        throw runtime_error("Missing condition after 'if'");
+    }
     auto ifNode = createNode(NodeType::IF);
 
     // Собираем условие до then/begin
@@ -171,6 +178,9 @@ void Parser::parseBlock(HLNode* parent) {
             parseStatement(parent);
         }
     }
+    if (pos >= lexemes.size()) {
+        throw runtime_error("Unclosed block (missing 'end')");
+    }
 }
 
 HLNode* Parser::BuildHList(vector<Lexeme>& input) {
@@ -181,6 +191,9 @@ HLNode* Parser::BuildHList(vector<Lexeme>& input) {
     // Пропускаем заголовок программы (program name;)
     if (matchKeyword("program")) {
         advance();
+        if (!match(LexemeType::Identifier)) {
+            throw runtime_error("Expected program name after 'program'");
+        }
         while (pos < lexemes.size() && !(match(LexemeType::Separator) && currentLex().value == ";")) {
             advance();
         }
