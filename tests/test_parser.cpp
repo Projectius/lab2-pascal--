@@ -30,9 +30,9 @@ TEST(ParserTest, multiArg_func) {
       [STATEMENT: num1 ]
 )";
     string res = HLNodeToString(result, 0);
-    cout << "!\n" << endl;
+    /*cout << "!\n" << endl;
     cout << res << endl;
-    cout << "!\n" << endl;
+    cout << "!\n" << endl;*/
     EXPECT_EQ(res, expected);
 }
 
@@ -90,8 +90,8 @@ TEST(ParserTest, FullProgram) {
         [STATEMENT: Invalid input ]
 )";
     string res = HLNodeToString(result, 0);
-    cout << "!\n" << endl;
+    /*cout << "!\n" << endl;
     cout << res << endl;
-    cout << "!\n" << endl;
+    cout << "!\n" << endl;*/
     EXPECT_EQ(res, expected);
 }

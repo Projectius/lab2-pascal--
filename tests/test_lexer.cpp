@@ -368,7 +368,7 @@ string expected = R"rr({Keyword : "program"}
 {EndOfFile : ""}
 )rr";
     auto res = lexer.Tokenize(source);
-    cout << lexvectostr(res);
+    //cout << lexvectostr(res);
 
     EXPECT_EQ(lexvectostr(res), expected);
 }
