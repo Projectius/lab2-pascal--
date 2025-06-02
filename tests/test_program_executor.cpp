@@ -991,16 +991,17 @@ TEST(ExecutorTest, FullProgram) {
         num1 := 5;
     Write("Input int: ");
     Read(num2);
-    Write("Input double: ");
+    Write("Input double divisible by two: ");
     Read(d);
     if (d mod 2 = 0) then
         begin
-        Res := (num1 - num2 * 5 div 2) / (d * 2);
-    Write("Result = ", Res);
-    end
+        Res := (num1 + num2)/2;
+        Write("Result = ", Res);
+        end
     else
         Write("Invalid input");
     end.)";
+
     Lexer lexer;
     vector<Lexeme> input = lexer.Tokenize(source);
 

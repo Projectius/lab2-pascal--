@@ -1,3 +1,5 @@
+#define DEBUG_EXECPRINT
+
 #include "program_executor.h"
 #include <limits>   
 #include <algorithm> // Для std::transform, std::tolower
@@ -53,9 +55,9 @@ void ProgramExecutor::processNode(HLNode* node)
     // Базовый случай рекурсии
     if (!node) 
         return;
-
-    // cout << "EXEC: "<< NodeTypeToString(node->type)<<"\n" << lexvectostr(node->expr) << endl;
-    
+#ifdef DEBUG_EXECPRINT
+     cout << "EXEC: "<< NodeTypeToString(node->type)<<"\n" << lexvectostr(node->expr) << endl;
+#endif
 
     // Обработка узла в зависимости от его типа
     switch (node->type) 
